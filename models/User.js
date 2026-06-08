@@ -32,6 +32,31 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: "user",
     },
+
+    companyname: {
+      type: String,
+      default: "",
+    },
+
+    category: {
+      type: String,
+      default: "",
+    },
+
+    city: {
+      type: String,
+      default: "",
+    },
+
+    state: {
+      type: String,
+      default: "",
+    },
+
+    pincode: {
+      type: String,
+      default: "",
+    },
   },
   {
     timestamps: true,
