@@ -51,4 +51,4 @@ const enduserSchema = new mongoose.Schema(
   }
 );
 
-module.exports = mongoose.model("Endser", enduserSchema);
+module.exports = mongoose.model("Enduser", enduserSchema);
