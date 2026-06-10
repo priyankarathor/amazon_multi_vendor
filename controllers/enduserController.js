@@ -1,24 +1,24 @@
 const User = require("../models/Enduser");
 const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
 
-// ======================
-// REGISTER USER
-// ======================
+// REGISTER
 const registerendUser = async (req, res) => {
   try {
     const {
       name,
-      lastname,
       email,
       number,
       password,
       status,
+      role,
+      companyname,
+      category,
       city,
       state,
       pincode,
     } = req.body;
 
-    // Check existing user
     const existingUser = await User.findOne({ email });
 
     if (existingUser) {
@@ -28,43 +28,40 @@ const registerendUser = async (req, res) => {
       });
     }
 
-    // Hash Password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create User
     const user = await User.create({
       name,
-      lastname,
       email,
       number,
       password: hashedPassword,
       status,
+      role,
+      companyname,
+      category,
       city,
       state,
       pincode,
     });
 
-    // Remove password from response
     const userData = user.toObject();
     delete userData.password;
 
-    return res.status(201).json({
+    res.status(201).json({
       success: true,
       message: "User Registered Successfully",
       user: userData,
     });
   } catch (error) {
-    return res.status(500).json({
+    res.status(500).json({
       success: false,
       message: error.message,
     });
   }
 };
 
-// ======================
-// LOGIN USER
-// ======================
-const loginUser = async (req, res) => {
+// LOGIN
+const loginendUser = async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -91,17 +88,30 @@ const loginUser = async (req, res) => {
       });
     }
 
-    // Remove password from response
+    // Generate JWT Token
+    const token = jwt.sign(
+      {
+        id: user._id,
+        role: user.role,
+        email: user.email,
+      },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: "7d",
+      }
+    );
+
     const userData = user.toObject();
     delete userData.password;
 
-    return res.status(200).json({
+    res.status(200).json({
       success: true,
       message: "Login Successful",
+      token,
       user: userData,
     });
   } catch (error) {
-    return res.status(500).json({
+    res.status(500).json({
       success: false,
       message: error.message,
     });
@@ -110,5 +120,5 @@ const loginUser = async (req, res) => {
 
 module.exports = {
   registerendUser,
-  loginUser,
+  loginendUser,
 };
