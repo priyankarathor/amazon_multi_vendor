@@ -9,10 +9,38 @@ const {
   deleteProduct,
 } = require("../controllers/productController");
 
-router.post("/add", addProduct);
+const verifyToken = require("../middleware/authMiddleware");
+const authorizeRoles = require("../middleware/roleMiddleware");
+
+
+// PUBLIC ROUTES
+
 router.get("/", getProducts);
+
 router.get("/:id", getSingleProduct);
-router.put("/update/:id", updateProduct);
-router.delete("/delete/:id", deleteProduct);
+
+
+// PRIVATE ROUTES
+
+router.post(
+  "/add",
+  verifyToken,
+  authorizeRoles("vendor", "admin"),
+  addProduct
+);
+
+router.put(
+  "/update/:id",
+  verifyToken,
+  authorizeRoles("vendor", "admin"),
+  updateProduct
+);
+
+router.delete(
+  "/delete/:id",
+  verifyToken,
+  authorizeRoles("admin"),
+  deleteProduct
+);
 
 module.exports = router;
