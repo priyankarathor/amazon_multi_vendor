@@ -25,12 +25,12 @@ const userSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      default: "active",
+      default: "Inactive",
     },
 
     role: {
       type: String,
-      default: "user",
+      default: "Vender",
     },
 
     companyname: {
