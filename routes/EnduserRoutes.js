@@ -3,10 +3,10 @@ const router = express.Router();
 
 const {
   registerendUser,
-  loginUser,
+  loginendUser,
 } = require("../controllers/enduserController");
 
 router.post("/endregister", registerendUser);
-router.post("/endlogin", loginUser);
+router.post("/endlogin", loginendUser);
 
 module.exports = router;
