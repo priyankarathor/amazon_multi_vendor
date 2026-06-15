@@ -1,16 +1,15 @@
 const mongoose = require("mongoose");
 const SubToSubCategory = require("../models/SubToSubCategory");
 
-
-// ================= CREATE =================
+// CREATE
 const addSubToSubCategory = async (req, res) => {
   try {
     const data = await SubToSubCategory.create(req.body);
 
     res.status(201).json({
       success: true,
-      message: "Sub To Sub Category Added Successfully",
-      subToSubCategory: data,
+      message: "Added Successfully",
+      data,
     });
   } catch (error) {
     res.status(500).json({
@@ -20,8 +19,7 @@ const addSubToSubCategory = async (req, res) => {
   }
 };
 
-
-// ================= GET ALL =================
+// GET ALL
 const getSubToSubCategories = async (req, res) => {
   try {
     const data = await SubToSubCategory.find()
@@ -32,9 +30,11 @@ const getSubToSubCategories = async (req, res) => {
     res.status(200).json({
       success: true,
       count: data.length,
-      subToSubCategories: data,
+      data,
     });
   } catch (error) {
+    console.log(error);
+
     res.status(500).json({
       success: false,
       message: error.message,
@@ -42,18 +42,10 @@ const getSubToSubCategories = async (req, res) => {
   }
 };
 
-
-// ================= GET SINGLE =================
+// GET SINGLE
 const getSingleSubToSubCategory = async (req, res) => {
   try {
     const { id } = req.params;
-
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid ID",
-      });
-    }
 
     const data = await SubToSubCategory.findById(id)
       .populate("categoryId")
@@ -62,13 +54,13 @@ const getSingleSubToSubCategory = async (req, res) => {
     if (!data) {
       return res.status(404).json({
         success: false,
-        message: "Data not found",
+        message: "Not Found",
       });
     }
 
     res.status(200).json({
       success: true,
-      subToSubCategory: data,
+      data,
     });
   } catch (error) {
     res.status(500).json({
@@ -78,18 +70,10 @@ const getSingleSubToSubCategory = async (req, res) => {
   }
 };
 
-
-// ================= UPDATE =================
+// UPDATE
 const updateSubToSubCategory = async (req, res) => {
   try {
     const { id } = req.params;
-
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid ID",
-      });
-    }
 
     const data = await SubToSubCategory.findByIdAndUpdate(
       id,
@@ -98,21 +82,19 @@ const updateSubToSubCategory = async (req, res) => {
         new: true,
         runValidators: true,
       }
-    )
-      .populate("categoryId")
-      .populate("subCategoryId");
+    );
 
     if (!data) {
       return res.status(404).json({
         success: false,
-        message: "Data not found",
+        message: "Not Found",
       });
     }
 
     res.status(200).json({
       success: true,
       message: "Updated Successfully",
-      subToSubCategory: data,
+      data,
     });
   } catch (error) {
     res.status(500).json({
@@ -122,25 +104,17 @@ const updateSubToSubCategory = async (req, res) => {
   }
 };
 
-
-// ================= DELETE =================
+// DELETE
 const deleteSubToSubCategory = async (req, res) => {
   try {
     const { id } = req.params;
-
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid ID",
-      });
-    }
 
     const data = await SubToSubCategory.findByIdAndDelete(id);
 
     if (!data) {
       return res.status(404).json({
         success: false,
-        message: "Data not found",
+        message: "Not Found",
       });
     }
 

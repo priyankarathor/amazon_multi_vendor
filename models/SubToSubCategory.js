@@ -7,22 +7,27 @@ const subToSubCategorySchema = new mongoose.Schema(
       ref: "Category",
       required: true,
     },
-    subcategoryId: {
+
+    subCategoryId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "SubCategory",
       required: true,
     },
-    name: {
+
+    categoryvalue: {
       type: String,
       required: true,
+      trim: true,
     },
-    image: String,
+
     status: {
-      type: String,
-      default: "active",
+      type: Boolean,
+      default: true,
     },
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+  }
 );
 
 module.exports = mongoose.model(

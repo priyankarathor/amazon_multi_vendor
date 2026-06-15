@@ -9,20 +9,14 @@ const {
   deleteSubToSubCategory,
 } = require("../controllers/subToSubCategoryController");
 
-
-// CREATE
 router.post("/add", addSubToSubCategory);
 
-// GET ALL
 router.get("/", getSubToSubCategories);
 
-// GET SINGLE
 router.get("/:id", getSingleSubToSubCategory);
 
-// UPDATE
-router.put("/update/:id", updateSubToSubCategory);
+router.put("/:id", updateSubToSubCategory);
 
-// DELETE
-router.delete("/delete/:id", deleteSubToSubCategory);
+router.delete("/:id", deleteSubToSubCategory);
 
 module.exports = router;
