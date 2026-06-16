@@ -1,101 +1,47 @@
 const Category = require("../models/Category");
 
-
-// INSERT CATEGORY
-const addCategory = async (req, res) => {
+// CREATE
+const createCategory = async (req, res) => {
   try {
-    const category = await Category.create(req.body);
-
-    res.status(201).json({
-      success: true,
-      message: "Category Added Successfully",
-      category,
-    });
-  } catch (error) {
-    res.status(500).json({
-      message: error.message,
-    });
+    const data = await Category.create(req.body);
+    res.json({ success: true, data });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
   }
 };
 
-
-// GET ALL CATEGORY
+// GET ALL
 const getCategories = async (req, res) => {
-  try {
-    const categories = await Category.find();
-
-    res.status(200).json({
-      success: true,
-      categories,
-    });
-  } catch (error) {
-    res.status(500).json({
-      message: error.message,
-    });
-  }
+  const data = await Category.find();
+  res.json({ success: true, data });
 };
 
-
-// GET SINGLE CATEGORY
-const getSingleCategory = async (req, res) => {
-  try {
-    const category = await Category.findById(req.params.id);
-
-    res.status(200).json({
-      success: true,
-      category,
-    });
-  } catch (error) {
-    res.status(500).json({
-      message: error.message,
-    });
-  }
+// GET ONE
+const getCategory = async (req, res) => {
+  const data = await Category.findById(req.params.id);
+  res.json({ success: true, data });
 };
 
-
-// UPDATE CATEGORY
+// UPDATE
 const updateCategory = async (req, res) => {
-  try {
-    const category = await Category.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true }
-    );
-
-    res.status(200).json({
-      success: true,
-      message: "Category Updated Successfully",
-      category,
-    });
-  } catch (error) {
-    res.status(500).json({
-      message: error.message,
-    });
-  }
+  const data = await Category.findByIdAndUpdate(
+    req.params.id,
+    req.body,
+    { new: true }
+  );
+  res.json({ success: true, data });
 };
 
-
-// DELETE CATEGORY
+// DELETE
 const deleteCategory = async (req, res) => {
-  try {
-    await Category.findByIdAndDelete(req.params.id);
-
-    res.status(200).json({
-      success: true,
-      message: "Category Deleted Successfully",
-    });
-  } catch (error) {
-    res.status(500).json({
-      message: error.message,
-    });
-  }
+  await Category.findByIdAndDelete(req.params.id);
+  res.json({ success: true, message: "Deleted" });
 };
-
 
 module.exports = {
-  addCategory,
+  createCategory,
   getCategories,
-  getSingleCategory,
+  getCategory,
   updateCategory,
   deleteCategory,
 };

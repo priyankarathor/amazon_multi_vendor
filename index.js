@@ -23,8 +23,7 @@ app.use("/api/categories", require("./routes/categoryRoutes"));
 app.use("/api/subcategories", require("./routes/subCategoryRoutes"));
 app.use("/api/subtosubcategories",require("./routes/subToSubCategoryRoutes"));
 app.use("/api/products",  require("./routes/productRoutes"));
-
-
+app.use("/api/categoryattribute", require("./routes/categoryAttributeRoutes"));
 
 const PORT = process.env.PORT || 5000;
 
