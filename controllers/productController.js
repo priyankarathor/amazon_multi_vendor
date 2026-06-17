@@ -1,6 +1,5 @@
 const Product = require("../models/Product");
 
-// CREATE PRODUCT
 const createProduct = async (req, res) => {
   try {
     const product = await Product.create(req.body);
@@ -10,7 +9,6 @@ const createProduct = async (req, res) => {
   }
 };
 
-// GET ALL
 const getProducts = async (req, res) => {
   try {
     const products = await Product.find();
@@ -20,7 +18,6 @@ const getProducts = async (req, res) => {
   }
 };
 
-// GET ONE
 const getProduct = async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
