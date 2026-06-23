@@ -147,25 +147,16 @@ const productSchema = new mongoose.Schema(
     maximumOrderQuantity: Number
   },
 
-  // ======================
-  // GIFT OPTIONS
-  // ======================
   giftOptions: {
     giftMessageAvailable: Boolean,
     giftWrapAvailable: Boolean
   },
 
-  // ======================
-  // CATEGORY
-  // ======================
   categoryId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Category"
   },
 
-  // ======================
-  // DYNAMIC ATTRIBUTES
-  // ======================
   attributes: [
     {
       name: String,
@@ -173,9 +164,6 @@ const productSchema = new mongoose.Schema(
     }
   ],
 
-  // ======================
-  // VARIANTS
-  // ======================
   variants: [
   {
     sku: String,
