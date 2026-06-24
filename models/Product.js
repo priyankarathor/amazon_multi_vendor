@@ -2,9 +2,7 @@ const mongoose = require("mongoose");
 
 const productSchema = new mongoose.Schema(
 {
-  // ======================
-  // BASIC PRODUCT INFO
-  // ======================
+
   productName: { type: String, required: true },
   itemName: String,
   productType: String,
@@ -17,9 +15,6 @@ const productSchema = new mongoose.Schema(
   metaKeywords: [String],
   searchKeywords: [String],
 
-  // ======================
-  // DESCRIPTION
-  // ======================
   description: {
     productDescription: String,
     bulletPoints: [String],
@@ -27,9 +22,6 @@ const productSchema = new mongoose.Schema(
     multiImages: [String]
   },
 
-  // ======================
-  // PRODUCT DETAILS
-  // ======================
   productDetails: {
     targetAudienceKeyword: String,
     modelNumber: String,
@@ -53,9 +45,6 @@ const productSchema = new mongoose.Schema(
     teamName: String
   },
 
-  // ======================
-  // DIMENSIONS
-  // ======================
   dimensions: {
     itemDimensions: {
       length: Number,
@@ -72,9 +61,6 @@ const productSchema = new mongoose.Schema(
     packageWeight: Number
   },
 
-  // ======================
-  // BATTERY / CONDITION
-  // ======================
   batteryInfo: {
     batteryLifePercentage: Number,
     functionalCondition: String,
@@ -82,9 +68,6 @@ const productSchema = new mongoose.Schema(
     accessories: String
   },
 
-  // ======================
-  // PACKAGING
-  // ======================
   packaging: {
     packagingType: String,
     sourceType: String,
@@ -93,9 +76,6 @@ const productSchema = new mongoose.Schema(
     masterPackLayersPerPallet: Number
   },
 
-  // ======================
-  // SAFETY & COMPLIANCE
-  // ======================
   safetyCompliance: {
     countryRegionOfOrigin: String,
     dangerousGoodsRegulation: String,
@@ -110,9 +90,6 @@ const productSchema = new mongoose.Schema(
     lessThan30PercentSOC: Boolean
   },
 
-  // ======================
-  // EXTERNAL INFO
-  // ======================
   externalInfo: {
     externalProductInfo: String,
     externalProductInfoEntity: String,
@@ -120,9 +97,6 @@ const productSchema = new mongoose.Schema(
     packerContactInformation: String
   },
 
-  // ======================
-  // OFFER / INVENTORY
-  // ======================
   offer: {
     sku: String,
     quantity: Number,
