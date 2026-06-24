@@ -2,27 +2,50 @@ const mongoose = require("mongoose");
 
 const productSchema = new mongoose.Schema(
 {
-//product details
-//get details
+  // =========================
+  // BASIC PRODUCT INFO
+  // =========================
   productName: { type: String, required: true },
   itemName: String,
   productType: String,
   recommendedBrowseNode: String,
-  variations: String,
   brandName: String,
   externalProductId: String,
 
+  categoryId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Category",
+    required: true
+  },
+
+  vendorId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+    required: true
+  },
+
+  // =========================
+  // SEARCH / SEO
+  // =========================
   metadata: String,
   metaKeywords: [String],
   searchKeywords: [String],
 
+  // =========================
+  // PRODUCT DESCRIPTION
+  // =========================
   description: {
     productDescription: String,
-    bulletPoints: [String],
-    images: [String],
-    multiImages: [String]
+    bulletPoints: [String]
   },
 
+  // Main product images
+  images: [String],
+
+  // =========================
+  // PRODUCT DETAILS
+  // Common product info only
+  // =========================
   productDetails: {
     targetAudienceKeyword: String,
     modelNumber: String,
@@ -31,8 +54,6 @@ const productSchema = new mongoose.Schema(
     specialFeatures: [String],
     material: String,
     itemTypeName: String,
-    color: String,
-    size: String,
     occasion: String,
     partNumber: String,
     itemShape: String,
@@ -40,12 +61,12 @@ const productSchema = new mongoose.Schema(
     manufacturerContactInfo: String,
     unitCount: Number,
     unitCountType: String,
-    manufacturerMinimumAgeMonths: Number,
-    includedComponents: [String],
-    leagueName: String,
-    teamName: String
+    includedComponents: [String]
   },
 
+  // =========================
+  // DIMENSIONS
+  // =========================
   dimensions: {
     itemDimensions: {
       length: Number,
@@ -62,21 +83,19 @@ const productSchema = new mongoose.Schema(
     packageWeight: Number
   },
 
-  batteryInfo: {
-    batteryLifePercentage: Number,
-    functionalCondition: String,
-    cosmeticCondition: String,
-    accessories: String
-  },
-
+  // =========================
+  // PACKAGING
+  // =========================
   packaging: {
     packagingType: String,
     sourceType: String,
     fulfillmentChannel: String,
-    numberOfPacks: Number,
-    masterPackLayersPerPallet: Number
+    numberOfPacks: Number
   },
 
+  // =========================
+  // SAFETY
+  // =========================
   safetyCompliance: {
     countryRegionOfOrigin: String,
     dangerousGoodsRegulation: String,
@@ -86,11 +105,12 @@ const productSchema = new mongoose.Schema(
     complianceMedia: [String],
     safetyAttestation: String,
     safetyAttestationAddress: String,
-    shipsGlobally: Boolean,
-    nonLithiumBatteryEnergyContent: String,
-    lessThan30PercentSOC: Boolean
+    shipsGlobally: Boolean
   },
 
+  // =========================
+  // EXTRA PRODUCT INFO
+  // =========================
   externalInfo: {
     externalProductInfo: String,
     externalProductInfoEntity: String,
@@ -98,79 +118,67 @@ const productSchema = new mongoose.Schema(
     packerContactInformation: String
   },
 
-  offer: {
-    sku: String,
-    quantity: Number,
-    handlingTime: Number,
-    restockDate: Date,
-
-    yourPrice: Number,
-    maximumRetailPrice: Number,
-    automatedPricing: Boolean,
-
-    minimumSellerAllowedPrice: Number,
-    maximumSellerAllowedPrice: Number,
-
-    salePrice: Number,
-    saleStartDate: Date,
-    saleEndDate: Date,
-
-    offeringReleaseDate: Date,
-    itemCondition: String,
-    productTaxCode: String,
-    merchantReleaseDate: Date,
-    maximumOrderQuantity: Number
-  },
-
+  // =========================
+  // GIFT OPTIONS
+  // =========================
   giftOptions: {
     giftMessageAvailable: Boolean,
     giftWrapAvailable: Boolean
   },
 
-        categoryId: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: "Category"
-        },
-
-        description: String,
-
-        attributes: [
-            {
-                name: String,
-                value: String
-            }
-        ],
-
-        variants: [
-            {
-                color: String,
-
-                size: String,
-
-                mrp: Number,
-
-                sellingPrice: Number,
-
-                stock: Number,
-
-                images: [String]
-            }
-        ],
-
-        vendorId: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: 'User',   // or 'Vendor' if you have a Vendor model
-            required: true
-        },
-
-
-
-        images: [String]
-    },
-
-
+  // =========================
+  // DYNAMIC ATTRIBUTES
+  // Category-specific attributes
+  // =========================
+  attributesMeta: [
     {
-        timestamps: true
-    });
+      name: String,
+      values: [String]
+    }
+  ],
+
+  // =========================
+  // VARIANTS
+  // Dynamic for all categories
+  // =========================
+  variants: [
+    {
+      sku: { type: String, required: true },
+
+      attributes: [
+        {
+          name: String,
+          value: String
+        }
+      ],
+
+      images: [String],
+
+      inventory: {
+        stock: Number,
+        quantity: Number,
+        restockDate: Date
+      },
+
+      offer: {
+        mrp: Number,
+        sellingPrice: Number,
+        salePrice: Number,
+        handlingTime: Number,
+        automatedPricing: Boolean,
+        minimumSellerAllowedPrice: Number,
+        maximumSellerAllowedPrice: Number,
+        saleStartDate: Date,
+        saleEndDate: Date,
+        itemCondition: String,
+        productTaxCode: String,
+        maximumOrderQuantity: Number
+      }
+    }
+  ]
+},
+{
+  timestamps: true
+});
 
 module.exports = mongoose.model("Product", productSchema);
