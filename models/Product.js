@@ -143,7 +143,7 @@ const productSchema = new mongoose.Schema(
   // =========================
   variants: [
     {
-      sku: { type: String, required: true },
+      sku: { type: String},
 
       attributes: [
         {
