@@ -9,7 +9,7 @@ const categoryAttributeSchema = new mongoose.Schema(
     },
 
     name: {
-      type: String, // RAM, Processor, Size
+      type: String, 
       required: true,
     },
 
