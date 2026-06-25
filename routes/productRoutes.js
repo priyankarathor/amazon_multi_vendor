@@ -8,5 +8,6 @@ router.post("/create", productController.createProduct);
 
 // GET PRODUCT DETAILS BY ID
 router.get("/:productId", productController.getProductDetails);
+router.get("/", productController.productfetch);
 
 module.exports = router;
