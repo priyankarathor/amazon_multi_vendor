@@ -2,9 +2,7 @@ const mongoose = require("mongoose");
 
 const productSchema = new mongoose.Schema(
 {
-  // =========================
-  // BASIC PRODUCT INFO
-  // =========================
+  // BASIC
   productName: { type: String, required: true },
   itemName: String,
   productType: String,
@@ -24,28 +22,20 @@ const productSchema = new mongoose.Schema(
     required: true
   },
 
-  // =========================
-  // SEARCH / SEO
-  // =========================
+  // SEO
   metadata: String,
   metaKeywords: [String],
   searchKeywords: [String],
 
-  // =========================
-  // PRODUCT DESCRIPTION
-  // =========================
+  // DESCRIPTION
   description: {
     productDescription: String,
     bulletPoints: [String]
   },
 
-  // Main product images
   images: [String],
 
-  // =========================
   // PRODUCT DETAILS
-  // Common product info only
-  // =========================
   productDetails: {
     targetAudienceKeyword: String,
     modelNumber: String,
@@ -64,9 +54,7 @@ const productSchema = new mongoose.Schema(
     includedComponents: [String]
   },
 
-  // =========================
   // DIMENSIONS
-  // =========================
   dimensions: {
     itemDimensions: {
       length: Number,
@@ -83,9 +71,7 @@ const productSchema = new mongoose.Schema(
     packageWeight: Number
   },
 
-  // =========================
   // PACKAGING
-  // =========================
   packaging: {
     packagingType: String,
     sourceType: String,
@@ -93,9 +79,7 @@ const productSchema = new mongoose.Schema(
     numberOfPacks: Number
   },
 
-  // =========================
   // SAFETY
-  // =========================
   safetyCompliance: {
     countryRegionOfOrigin: String,
     dangerousGoodsRegulation: String,
@@ -108,9 +92,7 @@ const productSchema = new mongoose.Schema(
     shipsGlobally: Boolean
   },
 
-  // =========================
-  // EXTRA PRODUCT INFO
-  // =========================
+  // EXTRA INFO
   externalInfo: {
     externalProductInfo: String,
     externalProductInfoEntity: String,
@@ -118,67 +100,20 @@ const productSchema = new mongoose.Schema(
     packerContactInformation: String
   },
 
-  // =========================
-  // GIFT OPTIONS
-  // =========================
+  // GIFTS
   giftOptions: {
     giftMessageAvailable: Boolean,
     giftWrapAvailable: Boolean
   },
 
-  // =========================
   // DYNAMIC ATTRIBUTES
-  // Category-specific attributes
-  // =========================
   attributesMeta: [
     {
       name: String,
       values: [String]
     }
-  ],
-
-  // =========================
-  // VARIANTS
-  // Dynamic for all categories
-  // =========================
-  variants: [
-    {
-      sku: { type: String},
-
-      attributes: [
-        {
-          name: String,
-          value: String
-        }
-      ],
-
-      images: [String],
-
-      inventory: {
-        stock: Number,
-        quantity: Number,
-        restockDate: Date
-      },
-
-      offer: {
-        mrp: Number,
-        sellingPrice: Number,
-        salePrice: Number,
-        handlingTime: Number,
-        automatedPricing: Boolean,
-        minimumSellerAllowedPrice: Number,
-        maximumSellerAllowedPrice: Number,
-        saleStartDate: Date,
-        saleEndDate: Date,
-        itemCondition: String,
-        productTaxCode: String,
-        maximumOrderQuantity: Number
-      }
-    }
   ]
 },
-{
-  timestamps: true
-});
+{ timestamps: true });
 
 module.exports = mongoose.model("Product", productSchema);
