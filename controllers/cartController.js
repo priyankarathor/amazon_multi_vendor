@@ -17,11 +17,10 @@ exports.createCart = async (req, res) => {
   }
 };
 
-// Get All Cart Items
+// Get All Cart
 exports.getAllCart = async (req, res) => {
   try {
     const carts = await Cart.find()
-      .populate("cid")
       .populate("pid")
       .populate("variantId");
 
@@ -42,7 +41,6 @@ exports.getAllCart = async (req, res) => {
 exports.getCartById = async (req, res) => {
   try {
     const cart = await Cart.findById(req.params.id)
-      .populate("cid")
       .populate("pid")
       .populate("variantId");
 
@@ -65,7 +63,36 @@ exports.getCartById = async (req, res) => {
   }
 };
 
-// Update Cart Qty
+// Get Cart By Device ID
+exports.getCartByDivid = async (req, res) => {
+  try {
+    const { divid } = req.params;
+
+    const cartData = await Cart.find({ divid })
+      .populate("pid")
+      .populate("variantId");
+
+    if (cartData.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No cart found for this device id",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      count: cartData.length,
+      data: cartData,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// Update Cart
 exports.updateCart = async (req, res) => {
   try {
     const cart = await Cart.findByIdAndUpdate(
