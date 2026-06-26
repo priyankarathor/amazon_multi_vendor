@@ -105,6 +105,7 @@ const productSchema = new mongoose.Schema(
     giftMessageAvailable: Boolean,
     giftWrapAvailable: Boolean
   },
+  
 
   // DYNAMIC ATTRIBUTES
   attributesMeta: [
