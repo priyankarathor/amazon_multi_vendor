@@ -5,7 +5,7 @@ const cartSchema = new mongoose.Schema(
     cid: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Customer",
-      required: true,
+      required: false,
     },
 
     pid: {
