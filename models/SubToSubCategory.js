@@ -21,7 +21,7 @@ const subToSubCategorySchema = new mongoose.Schema(
     },
 
     status: {
-      type: Boolean,
+      type: String,
       default: true,
     },
   },
