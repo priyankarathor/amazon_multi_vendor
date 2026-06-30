@@ -14,7 +14,7 @@ router.post("/create", createCart);
 router.get("/", getAllCart);
 router.get("/device/:divid", getCartByDivid);
 router.get("/:id", getCartById);
-router.put("/:id", updateCart);
-router.delete("/:id", deleteCart);
+router.put("/update/:id", updateCart);
+router.delete("/delete/:id", deleteCart);
 
 module.exports = router;
