@@ -2,6 +2,7 @@ const Product = require("../models/Product");
 const Variant = require("../models/Variant");
 const Inventory = require("../models/Inventory");
 
+
 const createProduct = async (req, res) => {
    try {
       let { variants, vendorId, ...productData } = req.body;
@@ -108,8 +109,36 @@ const productfetch = async (req, res) => {
    }
 };
 
+const getVendorProducts = async (req, res) => {
+   try {
+      const vendorIdFromToken = req.user.vendorId;
+      const vendorIdFromParams = req.params.vendorId;
+
+      if (vendorIdFromToken !== vendorIdFromParams) {
+         return res.status(403).json({
+            success: false,
+            message: "Unauthorized access"
+         });
+      }
+
+      const productdata = await Product.find({ vendorId: vendorIdFromParams });
+
+      res.status(200).json({
+         success: true,
+         data: productdata
+      });
+
+   } catch (error) {
+      res.status(500).json({
+         success: false,
+         message: error.message
+      });
+   }
+};
+
 module.exports = {
    createProduct,
    getProductDetails,
-   productfetch
+   productfetch,
+   getVendorProducts
 };
