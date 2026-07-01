@@ -95,10 +95,19 @@ exports.getCartByDivid = async (req, res) => {
 // Update Cart
 exports.updateCart = async (req, res) => {
   try {
+    const { qty } = req.body;
+
+    if (qty && qty < 1) {
+      return res.status(400).json({
+        success: false,
+        message: "Quantity must be at least 1",
+      });
+    }
+
     const cart = await Cart.findByIdAndUpdate(
       req.params.id,
       req.body,
-      { new: true }
+      { new: true, runValidators: true }
     );
 
     if (!cart) {

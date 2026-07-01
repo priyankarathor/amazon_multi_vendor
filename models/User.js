@@ -23,11 +23,12 @@ const userSchema = new mongoose.Schema(
       required: true,
     },
 
-    status: {
+   status: {
       type: String,
-      default: "Inactive",
+      enum: ["pending", "active", "inactive", "blocked"],
+      default: "pending",
     },
-
+    
     role: {
       type: String,
       default: "Vender",
