@@ -4,7 +4,7 @@ const userSchema = new mongoose.Schema(
   {
     name: {
       type: String,
-      required: true,
+      required: false, // false because before OTP verify only email may be stored
     },
 
     email: {
@@ -15,23 +15,24 @@ const userSchema = new mongoose.Schema(
 
     number: {
       type: String,
-      required: true,
+      required: false,
     },
 
     password: {
       type: String,
-      required: true,
+      required: false,
     },
 
-   status: {
+    status: {
       type: String,
       enum: ["pending", "active", "inactive", "blocked"],
       default: "pending",
     },
-    
+
     role: {
       type: String,
-      default: "Vender",
+      enum: ["Vendor", "SuperAdmin"],
+      default: "Vendor",
     },
 
     companyname: {
@@ -57,6 +58,21 @@ const userSchema = new mongoose.Schema(
     pincode: {
       type: String,
       default: "",
+    },
+
+    otp: {
+      type: String,
+      default: null,
+    },
+
+    otpExpiry: {
+      type: Date,
+      default: null,
+    },
+
+    isVerified: {
+      type: Boolean,
+      default: false,
     },
   },
   {
