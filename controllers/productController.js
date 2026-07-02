@@ -111,17 +111,22 @@ const productfetch = async (req, res) => {
 
 const getVendorProducts = async (req, res) => {
    try {
-      const vendorIdFromToken = req.user.vendorId;
+      console.log("USER:", req.user);
+      console.log("PARAM:", req.params.vendorId);
+
+      const vendorIdFromToken = req.user.vendorId || req.user.id;
       const vendorIdFromParams = req.params.vendorId;
 
-      if (vendorIdFromToken !== vendorIdFromParams) {
+      if (vendorIdFromToken.toString() !== vendorIdFromParams.toString()) {
          return res.status(403).json({
             success: false,
             message: "Unauthorized access"
          });
       }
 
-      const productdata = await Product.find({ vendorId: vendorIdFromParams });
+      const productdata = await Product.find({
+         vendorId: vendorIdFromParams
+      });
 
       res.status(200).json({
          success: true,
