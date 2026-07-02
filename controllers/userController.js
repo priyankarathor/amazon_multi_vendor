@@ -4,7 +4,7 @@ const jwt = require("jsonwebtoken");
 const otpGenerator = require("otp-generator");
 const transporter = require("../config/mail");
 
-
+// all details
 const sendOtp = async (req, res) => {
   try {
     console.log("EMAIL:", process.env.EMAIL);
