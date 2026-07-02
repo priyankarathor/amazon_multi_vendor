@@ -7,14 +7,13 @@ const transporter = require("../config/mail");
 
 const sendOtp = async (req, res) => {
   try {
-    const { email } = req.body;
+    console.log("EMAIL:", process.env.EMAIL);
+    console.log(
+      "EMAIL_PASSWORD:",
+      process.env.EMAIL_PASSWORD ? "Loaded" : "Missing"
+    );
 
-    if (!email) {
-      return res.status(400).json({
-        success: false,
-        message: "Email required",
-      });
-    }
+    const { email } = req.body;
 
     let user = await User.findOne({ email });
 
@@ -30,23 +29,26 @@ const sendOtp = async (req, res) => {
 
     user.otp = otp;
     user.otpExpiry = new Date(Date.now() + 60000);
-    user.isVerified = false;
-
     await user.save();
+
+    console.log("Before sendMail");
 
     await transporter.sendMail({
       from: process.env.EMAIL,
       to: email,
       subject: "OTP Verification",
-      html: `<h2>Your OTP is ${otp}</h2><p>Valid for 60 sec</p>`,
+      html: `<h2>Your OTP is ${otp}</h2>`,
     });
+
+    console.log("After sendMail");
 
     return res.status(200).json({
       success: true,
       message: "OTP sent successfully",
     });
-
   } catch (error) {
+    console.log("MAIL ERROR:", error);
+
     return res.status(500).json({
       success: false,
       message: error.message,
