@@ -9,19 +9,26 @@ const sendOtp = async (req, res) => {
   try {
     console.log("EMAIL:", process.env.EMAIL);
     console.log(
-      "EMAIL_PASSWORD:",
-      process.env.EMAIL_PASSWORD ? "Loaded" : "Missing"
+      "PASSWORD:",
+      process.env.EMAIL_PASSWORD ? "FOUND" : "MISSING"
     );
 
     const { email } = req.body;
 
-    let user = await User.findOne({ email });
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: "Email required",
+      });
+    }
 
     const otp = otpGenerator.generate(6, {
       upperCaseAlphabets: false,
       lowerCaseAlphabets: false,
       specialChars: false,
     });
+
+    let user = await User.findOne({ email });
 
     if (!user) {
       user = new User({ email });
@@ -33,21 +40,21 @@ const sendOtp = async (req, res) => {
 
     console.log("Before sendMail");
 
-    await transporter.sendMail({
+    const info = await transporter.sendMail({
       from: process.env.EMAIL,
       to: email,
       subject: "OTP Verification",
       html: `<h2>Your OTP is ${otp}</h2>`,
     });
 
-    console.log("After sendMail");
+    console.log("Mail Sent:", info.messageId);
 
     return res.status(200).json({
       success: true,
       message: "OTP sent successfully",
     });
   } catch (error) {
-    console.log("MAIL ERROR:", error);
+    console.log("MAIL ERROR FULL:", error);
 
     return res.status(500).json({
       success: false,
@@ -55,7 +62,6 @@ const sendOtp = async (req, res) => {
     });
   }
 };
-
 // ================= RESEND OTP =================
 const resendOtp = async (req, res) => {
   try {
