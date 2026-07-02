@@ -5,7 +5,6 @@ const otpGenerator = require("otp-generator");
 const transporter = require("../config/mail");
 
 
-// ================= SEND OTP =================
 const sendOtp = async (req, res) => {
   try {
     const { email } = req.body;
@@ -19,36 +18,18 @@ const sendOtp = async (req, res) => {
 
     let user = await User.findOne({ email });
 
-    if (user && user.isVerified) {
-      return res.status(400).json({
-        success: false,
-        message: "Email already verified",
-      });
-    }
-
-    if (user && user.otpExpiry && new Date() < user.otpExpiry) {
-      const remaining = Math.ceil((user.otpExpiry - new Date()) / 1000);
-
-      return res.status(400).json({
-        success: false,
-        message: `Please wait ${remaining} sec before requesting new OTP`,
-      });
-    }
-
     const otp = otpGenerator.generate(6, {
       upperCaseAlphabets: false,
       lowerCaseAlphabets: false,
       specialChars: false,
     });
 
-    const otpExpiry = new Date(Date.now() + 60 * 1000);
-
     if (!user) {
       user = new User({ email });
     }
 
-    user.otp = String(otp);
-    user.otpExpiry = otpExpiry;
+    user.otp = otp;
+    user.otpExpiry = new Date(Date.now() + 60000);
     user.isVerified = false;
 
     await user.save();
@@ -60,19 +41,18 @@ const sendOtp = async (req, res) => {
       html: `<h2>Your OTP is ${otp}</h2><p>Valid for 60 sec</p>`,
     });
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       message: "OTP sent successfully",
     });
 
   } catch (error) {
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: error.message,
     });
   }
 };
-
 
 // ================= RESEND OTP =================
 const resendOtp = async (req, res) => {
@@ -88,23 +68,14 @@ const resendOtp = async (req, res) => {
       });
     }
 
-    if (user.otpExpiry && new Date() < user.otpExpiry) {
-      const remaining = Math.ceil((user.otpExpiry - new Date()) / 1000);
-
-      return res.status(400).json({
-        success: false,
-        message: `Please wait ${remaining} sec`,
-      });
-    }
-
     const otp = otpGenerator.generate(6, {
       upperCaseAlphabets: false,
       lowerCaseAlphabets: false,
       specialChars: false,
     });
 
-    user.otp = String(otp);
-    user.otpExpiry = new Date(Date.now() + 60 * 1000);
+    user.otp = otp;
+    user.otpExpiry = new Date(Date.now() + 60000);
 
     await user.save();
 
@@ -115,24 +86,18 @@ const resendOtp = async (req, res) => {
       html: `<h2>Your OTP is ${otp}</h2>`,
     });
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
-      message: "OTP resent successfully",
+      message: "New OTP sent successfully",
     });
 
   } catch (error) {
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: error.message,
     });
   }
-
-   return res.status(200).json({
-      success:true,
-      message:"New OTP sent successfully"
-   });
 };
-
 
 // ================= VERIFY OTP =================
 const verifyOtp = async (req, res) => {
@@ -165,11 +130,12 @@ const verifyOtp = async (req, res) => {
     user.isVerified = true;
     user.otp = null;
     user.otpExpiry = null;
+
     await user.save();
 
     return res.status(200).json({
       success: true,
-      message: "Email verified successfully",
+      message: "OTP verified successfully",
     });
 
   } catch (error) {
@@ -197,14 +163,7 @@ const registerUser = async (req, res) => {
 
     const user = await User.findOne({ email });
 
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found",
-      });
-    }
-
-    if (!user.isVerified) {
+    if (!user || !user.isVerified) {
       return res.status(400).json({
         success: false,
         message: "Verify email first",
@@ -226,24 +185,23 @@ const registerUser = async (req, res) => {
 
     await user.save();
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
-      message: "Registration successful. Waiting for admin approval.",
+      message: "Registration successful",
     });
 
   } catch (error) {
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: error.message,
     });
   }
 };
 
-
 // ================= LOGIN =================
 const loginUser = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, otp } = req.body;
 
     const user = await User.findOne({ email });
 
@@ -254,19 +212,51 @@ const loginUser = async (req, res) => {
       });
     }
 
-    const isMatch = await bcrypt.compare(password, user.password);
+    if (!otp) {
+      const isMatch = await bcrypt.compare(password, user.password);
 
-    if (!isMatch) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid password",
+      if (!isMatch) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid password",
+        });
+      }
+
+      const loginOtp = otpGenerator.generate(6, {
+        upperCaseAlphabets: false,
+        lowerCaseAlphabets: false,
+        specialChars: false,
+      });
+
+      user.otp = loginOtp;
+      user.otpExpiry = new Date(Date.now() + 60000);
+      await user.save();
+
+      await transporter.sendMail({
+        from: process.env.EMAIL,
+        to: user.email,
+        subject: "Login OTP",
+        html: `<h2>Your Login OTP is ${loginOtp}</h2>`,
+      });
+
+      return res.status(200).json({
+        success: true,
+        otpRequired: true,
+        message: "OTP sent to email",
       });
     }
 
-    if (user.role === "vendor" && user.status !== "active") {
-      return res.status(403).json({
+    if (String(user.otp) !== String(otp)) {
+      return res.status(400).json({
         success: false,
-        message: "Account not activated by admin",
+        message: "Invalid OTP",
+      });
+    }
+
+    if (new Date() > user.otpExpiry) {
+      return res.status(400).json({
+        success: false,
+        message: "OTP expired",
       });
     }
 
@@ -280,17 +270,22 @@ const loginUser = async (req, res) => {
       { expiresIn: "7d" }
     );
 
+    user.otp = null;
+    user.otpExpiry = null;
+    await user.save();
+
     const userData = user.toObject();
     delete userData.password;
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       token,
       user: userData,
+      message: "Login successful",
     });
 
   } catch (error) {
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: error.message,
     });

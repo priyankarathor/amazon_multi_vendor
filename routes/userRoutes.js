@@ -14,12 +14,9 @@ const {
   resendOtp
 } = require("../controllers/userController");
 
-// OTP Routes
 router.post("/send-otp", sendOtp);
 router.post("/resend-otp", resendOtp);
 router.post("/verify-otp", verifyOtp);
-
-// Auth Routes
 router.post("/register", registerUser);
 router.post("/login", loginUser);
 
