@@ -2,7 +2,7 @@ const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const transporter = require("../config/mail");
-const sendWhatsapp = require("../utilS/sendWhatsapp");
+const sendWhatsapp = require("../utils/sendWhatsapp");
 const { generateOtp, getOtpExpiry } = require("../utils/otp");
 
 const PHONE_REGEX = /^\d{10}$/;
