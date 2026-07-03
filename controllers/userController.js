@@ -410,12 +410,26 @@ const loginUser = async (req, res) => {
       });
     }
 
+    // JWT Token Generate
+    const token = jwt.sign(
+      {
+        id: user._id,
+        email: user.email,
+        role: user.role,
+      },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: process.env.JWT_EXPIRE || "7d",
+      }
+    );
+
     const userData = user.toObject();
     delete userData.password;
 
     res.status(200).json({
       success: true,
       message: "Login successful",
+      token,
       user: userData,
     });
   } catch (error) {
@@ -423,6 +437,7 @@ const loginUser = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Something went wrong during login",
+      error: error.message,
     });
   }
 };
