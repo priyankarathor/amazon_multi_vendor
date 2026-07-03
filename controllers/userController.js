@@ -5,7 +5,8 @@ const transporter = require("../config/mail");
 const sendWhatsapp = require("../utils/sendWhatsapp");
 const { generateOtp, getOtpExpiry } = require("../utils/otp");
 
-const PHONE_REGEX = /^\d{10}$/;
+const PHONE_REGEX = /^[6-9]\d{9}$/;
+const SALT_ROUNDS = 10;
 
 const sendwhatsappOtp = async (req, res) => {
   try {
@@ -295,9 +296,6 @@ const registerUser = async (req, res) => {
       pincode,
     } = req.body;
 
-    // FIX: none of this was validated before. Missing password used
-    // to reach bcrypt.hash(undefined, 10) and throw an unhandled-ish
-    // error that got reported back as a generic 500.
     const missingFields = [
       "name",
       "email",
@@ -320,7 +318,7 @@ const registerUser = async (req, res) => {
     if (!PHONE_REGEX.test(number)) {
       return res.status(400).json({
         success: false,
-        message: "Enter a valid 10-digit phone number",
+        message: "Enter valid 10-digit phone number",
       });
     }
 
@@ -331,47 +329,44 @@ const registerUser = async (req, res) => {
       });
     }
 
-    const user = await User.findOne({ email });
+    const existingUser = await User.findOne({
+      $or: [{ email }, { number }],
+    });
 
-    if (!user || !user.isVerified) {
+    if (existingUser) {
       return res.status(400).json({
         success: false,
-        message: "Verify email first",
-      });
-    }
-
-    // Prevent claiming a number that's already registered to someone else
-    const numberOwner = await User.findOne({ number, _id: { $ne: user._id } });
-    if (numberOwner) {
-      return res.status(400).json({
-        success: false,
-        message: "This phone number is already registered",
+        message: "Email or Phone already registered",
       });
     }
 
     const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
 
-    user.name = name;
-    user.number = number;
-    user.password = hashedPassword;
-    user.companyname = companyname;
-    user.category = category;
-    user.city = city;
-    user.state = state;
-    user.pincode = pincode;
-    // FIX: schema enum is "Vendor" / "SuperAdmin" (capitalized), but
-    // this used to write "vendor" — a straight validation failure.
-    user.role = "Vendor";
-    user.status = "pending";
+    const user = new User({
+      name,
+      email,
+      number,
+      password: hashedPassword,
+      companyname,
+      category,
+      city,
+      state,
+      pincode,
+      role: "Vendor",
+      status: "active",
+      isVerified: true,
+    });
 
     await user.save();
 
-    return res.status(201).json({
+    res.status(201).json({
       success: true,
-      message: "Registration successful, awaiting admin approval",
+      message: "Registration successful",
+      user,
     });
   } catch (error) {
-    return res.status(500).json({
+    console.log("Register Error:", error);
+    res.status(500).json({
       success: false,
       message: "Something went wrong during registration",
     });
@@ -381,16 +376,16 @@ const registerUser = async (req, res) => {
 // ================= LOGIN =================
 const loginUser = async (req, res) => {
   try {
-    const { email, password, otp } = req.body;
+    const { email, password } = req.body;
 
-    if (!email) {
+    if (!email || !password) {
       return res.status(400).json({
         success: false,
-        message: "Email required",
+        message: "Email and Password required",
       });
     }
 
-    const user = await User.findOne({ email }).select("+password +otp +otpExpiry");
+    const user = await User.findOne({ email }).select("+password");
 
     if (!user) {
       return res.status(404).json({
@@ -402,106 +397,37 @@ const loginUser = async (req, res) => {
     if (user.status === "blocked") {
       return res.status(403).json({
         success: false,
-        message: "This account has been blocked",
+        message: "Account blocked",
       });
     }
 
-    if (!otp) {
-      if (!password) {
-        return res.status(400).json({
-          success: false,
-          message: "Password required",
-        });
-      }
+    const isMatch = await bcrypt.compare(password, user.password);
 
-      // FIX: previously if the user had never completed registration
-      // (no password set), bcrypt.compare(password, undefined) threw
-      // and the client got an opaque 500. Now it's a clean 400.
-      if (!user.password) {
-        return res.status(400).json({
-          success: false,
-          message: "Account has no password set. Please complete registration first",
-        });
-      }
-
-      const isMatch = await bcrypt.compare(password, user.password);
-
-      if (!isMatch) {
-        return res.status(400).json({
-          success: false,
-          message: "Invalid password",
-        });
-      }
-
-      const loginOtp = generateOtp();
-      user.otp = loginOtp;
-      user.otpExpiry = getOtpExpiry();
-      await user.save();
-
-      await transporter.sendMail({
-        from: process.env.EMAIL,
-        to: user.email,
-        subject: "Login OTP",
-        html: `<h2>Your Login OTP is ${loginOtp}</h2>`,
-      });
-
-      return res.status(200).json({
-        success: true,
-        otpRequired: true,
-        message: "OTP sent to email",
-      });
-    }
-
-    if (!user.otp || String(user.otp) !== String(otp)) {
+    if (!isMatch) {
       return res.status(400).json({
         success: false,
-        message: "Invalid OTP",
+        message: "Invalid password",
       });
     }
-
-    if (new Date() > user.otpExpiry) {
-      return res.status(400).json({
-        success: false,
-        message: "OTP expired",
-      });
-    }
-
-    const token = jwt.sign(
-      {
-        id: user._id,
-        role: user.role,
-        email: user.email,
-      },
-      process.env.JWT_SECRET,
-      { expiresIn: "7d" }
-    );
-
-    user.otp = null;
-    user.otpExpiry = null;
-    await user.save();
 
     const userData = user.toObject();
     delete userData.password;
-    delete userData.otp;
-    delete userData.otpExpiry;
-    delete userData.otpphone;
-    delete userData.otpExpiryphone;
 
-    return res.status(200).json({
+    res.status(200).json({
       success: true,
-      token,
-      user: userData,
       message: "Login successful",
+      user: userData,
     });
   } catch (error) {
-    return res.status(500).json({
+    console.log("Login Error:", error);
+    res.status(500).json({
       success: false,
       message: "Something went wrong during login",
     });
   }
 };
 
-// ================= CRUD (all admin-only, see routes) =================
+// ================= GET ALL USERS =================
 const getAllUsers = async (req, res) => {
   try {
     const users = await User.find();
@@ -511,12 +437,14 @@ const getAllUsers = async (req, res) => {
       users,
     });
   } catch (error) {
+    console.log("Get Users Error:", error);
     res.status(500).json({
       success: false,
       message: "Something went wrong while fetching users",
     });
   }
 };
+
 
 const getSingleUser = async (req, res) => {
   try {
