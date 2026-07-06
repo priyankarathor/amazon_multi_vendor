@@ -40,9 +40,13 @@ exports.getAllCart = async (req, res) => {
 // Get Cart By ID
 exports.getCartById = async (req, res) => {
   try {
+    console.log("Requested ID:", req.params.id);
+
     const cart = await Cart.findById(req.params.id)
       .populate("pid")
       .populate("variantId");
+
+    console.log("Cart:", cart);
 
     if (!cart) {
       return res.status(404).json({
@@ -55,13 +59,18 @@ exports.getCartById = async (req, res) => {
       success: true,
       data: cart,
     });
+
   } catch (error) {
+    console.log(error);
+
     res.status(500).json({
       success: false,
       message: error.message,
     });
   }
 };
+
+
 
 // Get Cart By Device ID
 exports.getCartByDivid = async (req, res) => {
@@ -85,6 +94,42 @@ exports.getCartByDivid = async (req, res) => {
       data: cartData,
     });
   } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+//get cart by cid
+
+// Get Cart By Customer ID
+exports.getCartByCid = async (req, res) => {
+  try {
+    const { cid } = req.params;
+
+    console.log("Customer ID:", cid);
+
+    const cart = await Cart.find({ cid })
+      .populate("pid")
+      .populate("variantId");
+
+    if (!cart || cart.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Cart not found for this customer",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      count: cart.length,
+      data: cart,
+    });
+
+  } catch (error) {
+    console.log(error);
+
     res.status(500).json({
       success: false,
       message: error.message,
