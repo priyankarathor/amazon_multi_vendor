@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const Cart = require("../models/Cart");
 
 // Create Cart
@@ -133,6 +134,38 @@ exports.getCartByCid = async (req, res) => {
     res.status(500).json({
       success: false,
       message: error.message,
+    });
+  }
+};
+
+//vender id 
+exports.getCartByVendor = async (req, res) => {
+  try {
+    const { venderid } = req.params;
+
+    const cart = await Cart.find({ venderid })
+      .populate("pid")
+      .populate("variantId")
+      .populate("cid")
+      .populate("venderid");
+
+    if (!cart.length) {
+      return res.status(404).json({
+        success: false,
+        message: "No cart found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      count: cart.length,
+      data: cart,
+    });
+
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      message: err.message,
     });
   }
 };

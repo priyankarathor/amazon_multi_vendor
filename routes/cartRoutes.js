@@ -8,7 +8,8 @@ const {
   updateCart,
   deleteCart,
   getCartByDivid,
-  getCartByCid
+  getCartByCid,
+  getCartByVendor
 } = require("../controllers/cartController");
 
 router.post("/create", createCart);
@@ -18,5 +19,6 @@ router.get("/:id", getCartById);
 router.put("/update/:id", updateCart);
 router.delete("/delete/:id", deleteCart);
 router.get("/customer/:cid", getCartByCid);
+router.get("/vendor/:venderid", getCartByVendor);
 
 module.exports = router;
