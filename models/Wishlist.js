@@ -32,7 +32,7 @@ const WishlistSchema = new mongoose.Schema(
 
     venderid: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Variant",
+      ref: "Vendor",
     },
 
     offerDiscount: {

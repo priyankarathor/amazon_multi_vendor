@@ -28,7 +28,7 @@ const orderSchema = new mongoose.Schema(
 
     vendorId: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
+        ref: "Vendor",
         required: true
     },
 
