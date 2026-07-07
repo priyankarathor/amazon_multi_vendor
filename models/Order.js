@@ -26,6 +26,12 @@ const orderSchema = new mongoose.Schema(
       required: true,
     },
 
+    vendorId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        required: true
+    },
+
     payment_status: {
       type: String,
       enum: ["pending", "paid", "failed"],
@@ -61,6 +67,8 @@ const orderSchema = new mongoose.Schema(
     shipped_at: Date,
     delivered_at: Date,
     cancelled_at: Date,
+
+   
   },
   { timestamps: true }
 );
