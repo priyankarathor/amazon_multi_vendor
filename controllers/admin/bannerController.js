@@ -1,198 +1,262 @@
-const Banner = require('../../models/Banner');
-const User = require('../../models/Vender');     // vendors are stored in User model
-const Category = require('../../models/Category');
-const Product = require('../../models/Product');
+const Banner = require("../../models/Banner");
+const Vendor = require("../../models/Vender");
+const Category = require("../../models/Category");
+const Product = require("../../models/Product");
 
-// ─────────────────────────────────────────────────────────────────
-// POST /api/admin/banners
-// Admin creates a new discount banner
-// Body: { title, image_url, vendorId, categoryId, discount_percentage, starts_at?, ends_at? }
-// ─────────────────────────────────────────────────────────────────
+const normalizeOption = (value) => {
+  if (!value) return value;
+  const normalized = String(value).trim().toLowerCase().replace(/[\s-]+/g, "_");
+  const aliases = {
+    home: "home_page",
+    homepage: "home_page",
+    category: "category_page",
+    categrory_page: "category_page",
+    categorypage: "category_page",
+    product: "product_page",
+    productpage: "product_page",
+    ad: "advertisement",
+    adv: "advertisement",
+    ads: "advertisement",
+    advert: "advertisement",
+    new: "new_arrival",
+  };
+
+  return aliases[normalized] || normalized;
+};
+
+const pickAlias = (body, fields) => {
+  for (const field of fields) {
+    if (body[field] !== undefined) return body[field];
+  }
+  return undefined;
+};
+
+const normalizeBannerPayload = (body, { withDefaults = false } = {}) => {
+  const sessionType = pickAlias(body, ["session_type", "sessiontype", "sessionType"]);
+  const specialization = pickAlias(body, [
+    "specialization",
+    "spacilization",
+    "banner_type",
+    "bannerType",
+  ]);
+
+  const payload = {
+    title: body.title,
+    image_url: body.image_url,
+    vendorId: body.vendorId,
+    categoryId: body.categoryId,
+    session_type: normalizeOption(sessionType),
+    specialization: normalizeOption(specialization),
+    discount_percentage: body.discount_percentage,
+    is_active: body.is_active,
+    starts_at: pickAlias(body, ["starts_at", "start_date"]),
+    ends_at: pickAlias(body, ["ends_at", "end_date"]),
+  };
+
+  if (withDefaults) {
+    payload.session_type = payload.session_type || "home_page";
+    payload.specialization = payload.specialization || "offer";
+    payload.starts_at = payload.starts_at === undefined ? null : payload.starts_at;
+    payload.ends_at = payload.ends_at === undefined ? null : payload.ends_at;
+  }
+
+  return payload;
+};
+
+const validateBannerPayload = async (payload, { requireAll = false } = {}) => {
+  const missingFields = [];
+
+  if (requireAll) {
+    for (const field of ["title", "image_url", "vendorId", "categoryId", "discount_percentage"]) {
+      if (payload[field] === undefined || payload[field] === null || payload[field] === "") {
+        missingFields.push(field);
+      }
+    }
+  }
+
+  if (missingFields.length > 0) {
+    return {
+      status: 422,
+      message: `${missingFields.join(", ")} are required`,
+    };
+  }
+
+  if (payload.vendorId) {
+    const vendor = await Vendor.findById(payload.vendorId);
+    if (!vendor) return { status: 404, message: "Vendor not found" };
+  }
+
+  if (payload.categoryId) {
+    const category = await Category.findById(payload.categoryId);
+    if (!category) return { status: 404, message: "Category not found" };
+  }
+
+  if (payload.discount_percentage !== undefined) {
+    const discount = Number(payload.discount_percentage);
+    if (!Number.isFinite(discount) || discount < 1 || discount > 100) {
+      return {
+        status: 422,
+        message: "discount_percentage must be between 1 and 100",
+      };
+    }
+    payload.discount_percentage = discount;
+  }
+
+  if (payload.starts_at && payload.ends_at) {
+    const startDate = new Date(payload.starts_at);
+    const endDate = new Date(payload.ends_at);
+
+    if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
+      return { status: 422, message: "start_date and end_date must be valid dates" };
+    }
+
+    if (endDate < startDate) {
+      return { status: 422, message: "end_date must be after start_date" };
+    }
+  }
+
+  return null;
+};
+
+const populateBanner = (query) =>
+  query.populate("vendorId", "name companyname").populate("categoryId", "name slug");
+
+const getProductCount = async (banner) => {
+  const vendorId = banner.vendorId?._id || banner.vendorId;
+  const categoryId = banner.categoryId?._id || banner.categoryId;
+
+  if (!vendorId || !categoryId) return 0;
+
+  return Product.countDocuments({ vendorId, categoryId });
+};
+
 exports.createBanner = async (req, res) => {
-    try {
-        const {
-            title,
-            image_url,
-            vendorId,     // ← changed
-            categoryId,   // ← changed
-            discount_percentage,
-            starts_at,
-            ends_at,
-        } = req.body;
+  try {
+    const payload = normalizeBannerPayload(req.body, { withDefaults: true });
+    const validationError = await validateBannerPayload(payload, { requireAll: true });
 
-        if (!title || !image_url || !vendorId || !categoryId || !discount_percentage) {
-            return res.status(422).json({
-                success: false,
-                message: 'title, image_url, vendorId, categoryId, discount_percentage are required',
-            });
-        }
-
-        const vendor = await User.findById(vendorId);     // ← changed
-        if (!vendor) {
-            return res.status(404).json({ success: false, message: 'Vendor not found' });
-        }
-
-        const category = await Category.findById(categoryId);  // ← changed
-        if (!category) {
-            return res.status(404).json({ success: false, message: 'Category not found' });
-        }
-
-        if (discount_percentage <= 0 || discount_percentage > 100) {
-            return res.status(422).json({
-                success: false,
-                message: 'discount_percentage must be between 1 and 100',
-            });
-        }
-
-        const banner = await Banner.create({
-            title,
-            image_url,
-            vendorId,     // ← changed
-            categoryId,   // ← changed
-            discount_percentage,
-            starts_at: starts_at || null,
-            ends_at: ends_at || null,
-            is_active: true,
-        });
-
-        const populated = await Banner.findById(banner._id)
-            .populate('vendorId', 'name shop_name logo_url')
-            .populate('categoryId', 'name slug');
-
-        res.status(201).json({
-            success: true,
-            message: 'Banner created successfully',
-            data: populated,
-        });
-
-    } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+    if (validationError) {
+      return res.status(validationError.status).json({
+        success: false,
+        message: validationError.message,
+      });
     }
+
+    const banner = await Banner.create(payload);
+    const populated = await populateBanner(Banner.findById(banner._id));
+
+    return res.status(201).json({
+      success: true,
+      message: "Banner created successfully",
+      data: populated,
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
 };
 
-// ─────────────────────────────────────────────────────────────────
-// GET /api/admin/banners
-// List all banners for admin (active + inactive)
-// ─────────────────────────────────────────────────────────────────
 exports.getAllBanners = async (req, res) => {
-    try {
-        const banners = await Banner.find()
-            .populate('vendorId', 'name companyname')
-            .populate('categoryId', 'name slug')
-            .sort({ createdAt: -1 });
+  try {
+    const banners = await populateBanner(Banner.find()).sort({ createdAt: -1 });
 
-        // Attach product count to each banner
-        const result = await Promise.all(
-            banners.map(async (b) => {
-                const productCount = await Product.countDocuments({
-                    vendorId: b.vendorId._id,
-                    categoryId: b.categoryId._id,
-                });
-                return { ...b.toObject(), product_count: productCount };
-            })
-        );
+    const data = await Promise.all(
+      banners.map(async (banner) => ({
+        ...banner.toObject(),
+        product_count: await getProductCount(banner),
+      }))
+    );
 
-        res.json({ success: true, total: result.length, data: result });
-    } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
-    }
+    return res.json({ success: true, total: data.length, data });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
 };
 
-// ─────────────────────────────────────────────────────────────────
-// GET /api/admin/banners/:id
-// Single banner detail
-// ─────────────────────────────────────────────────────────────────
 exports.getBanner = async (req, res) => {
-    try {
-        const banner = await Banner.findById(req.params.id)
-            .populate('vendorId', 'name companyname')
-            .populate('categoryId', 'name slug');
+  try {
+    const banner = await populateBanner(Banner.findById(req.params.id));
 
-        if (!banner) {
-            return res.status(404).json({ success: false, message: 'Banner not found' });
-        }
-
-        const productCount = await Product.countDocuments({
-            vendorId: banner.vendorId._id,
-            categoryId: banner.categoryId._id,
-        });
-
-        res.json({ success: true, data: { ...banner.toObject(), product_count: productCount } });
-    } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+    if (!banner) {
+      return res.status(404).json({ success: false, message: "Banner not found" });
     }
+
+    return res.json({
+      success: true,
+      data: {
+        ...banner.toObject(),
+        product_count: await getProductCount(banner),
+      },
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
 };
 
-// ─────────────────────────────────────────────────────────────────
-// PUT /api/admin/banners/:id
-// Update banner
-// ─────────────────────────────────────────────────────────────────
 exports.updateBanner = async (req, res) => {
-    try {
-        const banner = await Banner.findById(req.params.id);
+  try {
+    const banner = await Banner.findById(req.params.id);
 
-        if (!banner) {
-            return res.status(404).json({ success: false, message: 'Banner not found' });
-        }
-
-        const allowed = ['title', 'image_url', 'vendorId', 'categoryId', 'discount_percentage', 'starts_at', 'ends_at', 'is_active'];
-
-        allowed.forEach(field => {
-            if (req.body[field] !== undefined) {
-                banner[field] = req.body[field];
-            }
-        });
-
-        await banner.save();
-
-        const updated = await Banner.findById(banner._id)
-            .populate('vendorId', 'name companyname')
-            .populate('categoryId', 'name slug');
-
-        res.json({ success: true, message: 'Banner updated', data: updated });
-    } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+    if (!banner) {
+      return res.status(404).json({ success: false, message: "Banner not found" });
     }
+
+    const payload = normalizeBannerPayload(req.body);
+    const validationError = await validateBannerPayload(payload);
+
+    if (validationError) {
+      return res.status(validationError.status).json({
+        success: false,
+        message: validationError.message,
+      });
+    }
+
+    for (const [field, value] of Object.entries(payload)) {
+      if (value !== undefined) {
+        banner[field] = value;
+      }
+    }
+
+    await banner.save();
+
+    const updated = await populateBanner(Banner.findById(banner._id));
+
+    return res.json({ success: true, message: "Banner updated", data: updated });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
 };
 
-// ─────────────────────────────────────────────────────────────────
-// DELETE /api/admin/banners/:id
-// ─────────────────────────────────────────────────────────────────
 exports.deleteBanner = async (req, res) => {
-    try {
-        const banner = await Banner.findByIdAndDelete(req.params.id);
+  try {
+    const banner = await Banner.findByIdAndDelete(req.params.id);
 
-        if (!banner) {
-            return res.status(404).json({ success: false, message: 'Banner not found' });
-        }
-
-        res.json({ success: true, message: 'Banner deleted successfully' });
-    } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+    if (!banner) {
+      return res.status(404).json({ success: false, message: "Banner not found" });
     }
+
+    return res.json({ success: true, message: "Banner deleted successfully" });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
 };
 
-// ─────────────────────────────────────────────────────────────────
-// PATCH /api/admin/banners/:id/toggle
-// Enable / disable a banner
-// ─────────────────────────────────────────────────────────────────
 exports.toggleBanner = async (req, res) => {
-    try {
-        const banner = await Banner.findById(req.params.id);
+  try {
+    const banner = await Banner.findById(req.params.id);
 
-        if (!banner) {
-            return res.status(404).json({ success: false, message: 'Banner not found' });
-        }
-
-        banner.is_active = !banner.is_active;
-        await banner.save();
-
-        res.json({
-            success: true,
-            message: `Banner is now ${banner.is_active ? 'ACTIVE' : 'INACTIVE'}`,
-            is_active: banner.is_active,
-        });
-    } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+    if (!banner) {
+      return res.status(404).json({ success: false, message: "Banner not found" });
     }
+
+    banner.is_active = !banner.is_active;
+    await banner.save();
+
+    return res.json({
+      success: true,
+      message: `Banner is now ${banner.is_active ? "ACTIVE" : "INACTIVE"}`,
+      is_active: banner.is_active,
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
 };
