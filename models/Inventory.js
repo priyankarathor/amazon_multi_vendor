@@ -20,7 +20,11 @@ const inventorySchema = new mongoose.Schema(
     required: true
   },
 
-  stock: { type: Number, default: 0 }
+  stock: { type: Number, default: 0, min: 0 },
+
+  maxQty: { type: Number, default: 0, min: 0 },
+
+  isActive: { type: Boolean, default: true }
 },
 { timestamps: true });
 

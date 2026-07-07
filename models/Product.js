@@ -35,6 +35,11 @@ const productSchema = new mongoose.Schema(
 
   images: [String],
 
+  isActive: {
+    type: Boolean,
+    default: true
+  },
+
   // PRODUCT DETAILS
   productDetails: {
     targetAudienceKeyword: String,

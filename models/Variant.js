@@ -19,6 +19,11 @@ const variantSchema = new mongoose.Schema(
 
   images: [String],
 
+  isActive: {
+    type: Boolean,
+    default: true
+  },
+
   offer: {
     mrp: Number,
     sellingPrice: Number,
