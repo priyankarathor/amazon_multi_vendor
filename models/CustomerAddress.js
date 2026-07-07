@@ -2,9 +2,10 @@ const mongoose = require("mongoose");
 
 const customerAddressSchema = new mongoose.Schema(
   {
+    
     user_id: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Customer",
+      ref: "User",
       required: true,
     },
 
