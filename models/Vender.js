@@ -115,4 +115,4 @@ const userSchema = new mongoose.Schema(
   }
 );
 
-module.exports = mongoose.model("vender", userSchema);
+module.exports = mongoose.model("Vendor", userSchema, "venders");

@@ -26,6 +26,12 @@ const enduserSchema = new mongoose.Schema(
       required: true,
     },
 
+    role: {
+      type: String,
+      enum: ["Customer"],
+      default: "Customer",
+    },
+
     status: {
       type: String,
       default: "Active",

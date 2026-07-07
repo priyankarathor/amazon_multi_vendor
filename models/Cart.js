@@ -5,7 +5,7 @@ const cartSchema = new mongoose.Schema(
     // Customer
     cid: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Customer",
+      ref: "Enduser",
       default: null,
     },
 
@@ -26,7 +26,7 @@ const cartSchema = new mongoose.Schema(
     // Vendor
     venderid: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Vendor", // Change this to your actual vendor model name
+      ref: "Vendor",
       required: true,
     },
 

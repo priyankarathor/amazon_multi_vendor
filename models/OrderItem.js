@@ -16,6 +16,7 @@ const orderItemSchema = new mongoose.Schema(
 
     product_variant_id: {
       type: mongoose.Schema.Types.ObjectId,
+      ref: "Variant",
       required: true,
     },
 

@@ -14,7 +14,7 @@ const {
   resendOtp,
   sendwhatsappOtp,
   verifyWhatsappOtp,
-} = require("../controllers/userController");
+} = require("../controllers/venderController");
 
 const { protect, isSuperAdmin } = require("../middleware/auth");
 

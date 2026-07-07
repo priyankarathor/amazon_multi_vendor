@@ -2,6 +2,20 @@ const Product = require("../models/Product");
 const Variant = require("../models/Variant");
 const Inventory = require("../models/Inventory");
 
+const normalizeVariantAttributes = (attributes) => {
+   if (!attributes) {
+      return [];
+   }
+
+   if (Array.isArray(attributes)) {
+      return attributes;
+   }
+
+   return Object.entries(attributes).map(([name, value]) => ({
+      name,
+      value: String(value)
+   }));
+};
 
 const createProduct = async (req, res) => {
    try {
@@ -9,6 +23,21 @@ const createProduct = async (req, res) => {
 
       if (typeof variants === "string") {
          variants = JSON.parse(variants);
+      }
+
+      const missingFields = ["productName", "categoryId"].filter(
+         (field) => !productData[field]
+      );
+
+      if (!vendorId) {
+         missingFields.push("vendorId");
+      }
+
+      if (missingFields.length > 0) {
+         return res.status(400).json({
+            success: false,
+            message: `Missing required fields: ${missingFields.join(", ")}`
+         });
       }
 
       const product = await Product.create({
@@ -20,10 +49,17 @@ const createProduct = async (req, res) => {
 
       if (Array.isArray(variants)) {
          for (let v of variants) {
+            if (!v.sku) {
+               return res.status(400).json({
+                  success: false,
+                  message: "Variant sku is required"
+               });
+            }
+
             const variant = await Variant.create({
                productId: product._id,
                sku: v.sku,
-               attributes: v.attributes || {},
+               attributes: normalizeVariantAttributes(v.attributes),
                images: v.images || [],
                offer: v.offer || null
             });

@@ -4,7 +4,7 @@ const WishlistSchema = new mongoose.Schema(
   {
     cid: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Customer",
+      ref: "Enduser",
       required: false,
     },
 

@@ -7,17 +7,26 @@ const registerendUser = async (req, res) => {
   try {
     const {
       name,
+      lastname,
       email,
       number,
       password,
       status,
-      role,
-      companyname,
-      category,
       city,
       state,
       pincode,
     } = req.body;
+
+    const missingFields = ["name", "email", "number", "password"].filter(
+      (field) => !req.body[field]
+    );
+
+    if (missingFields.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: `Missing required fields: ${missingFields.join(", ")}`,
+      });
+    }
 
     const existingUser = await User.findOne({ email });
 
@@ -32,13 +41,11 @@ const registerendUser = async (req, res) => {
 
     const user = await User.create({
       name,
+      lastname,
       email,
       number,
       password: hashedPassword,
       status,
-      role,
-      companyname,
-      category,
       city,
       state,
       pincode,

@@ -17,10 +17,10 @@ router.post("/place-order", placeOrder);
 // Get All Orders
 router.get("/", getAllOrders);
 
-// Get Order By User
+// Get Order By User (user ka pura data + uske orders)
 router.get("/user/:userId", getOrdersByUser);
 
-// Get Order By Vendor
+// Get Order By Vendor (vendor ka pura data + uske orders)
 router.get("/vendor/:vendorId", getOrdersByVendor);
 
 // Get Order By ID

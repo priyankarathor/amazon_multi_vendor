@@ -17,7 +17,7 @@ app.get("/", (req, res) => {
   res.send("API Running");
 });
 
-app.use("/api/users", require("./routes/userRoutes"));
+app.use("/api/users", require("./routes/venderRoutes"));
 app.use("/api/endusers", require("./routes/EnduserRoutes"));
 app.use("/api/categories", require("./routes/categoryRoutes"));
 app.use("/api/subcategories", require("./routes/subCategoryRoutes"));

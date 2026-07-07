@@ -1,4 +1,4 @@
-const User = require("../models/User");
+const User = require("../models/Vender");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const transporter = require("../config/mail");
@@ -6,6 +6,7 @@ const sendWhatsapp = require("../utils/sendWhatsapp");
 const { generateOtp, getOtpExpiry } = require("../utils/otp");
 
 const PHONE_REGEX = /^[6-9]\d{9}$/;
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const SALT_ROUNDS = 10;
 
 const sendwhatsappOtp = async (req, res) => {

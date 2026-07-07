@@ -1,5 +1,5 @@
 const Banner = require('../../models/Banner');
-const User = require('../../models/User');     // vendors are stored in User model
+const User = require('../../models/Vender');     // vendors are stored in User model
 const Category = require('../../models/Category');
 const Product = require('../../models/Product');
 

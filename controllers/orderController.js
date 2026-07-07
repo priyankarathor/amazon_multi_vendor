@@ -69,7 +69,7 @@ exports.placeOrder = async (req, res) => {
     }
 
     // CREATE ORDER
-    const order = await Order.create({
+    let order = await Order.create({
       order_number: "ORD-" + Date.now(),
       user_id,
       vendorId: vendor_id,
@@ -81,17 +81,19 @@ exports.placeOrder = async (req, res) => {
     });
 
     // SAVE ORDER ITEMS
+    const orderItems = [];
     for (const item of items) {
-      await OrderItem.create({
+      const orderItem = await OrderItem.create({
         order_id: order._id,
         product_id: item.product_id,
         product_variant_id: item.variant_id,
-        vendorId: item.vendor_id,
+        vendor_id: item.vendor_id,
         product_name: item.product_name,
         quantity: item.quantity,
         unit_price: item.unit_price,
         total: item.quantity * item.unit_price,
       });
+      orderItems.push(orderItem);
     }
 
     // SAVE CUSTOMER ADDRESS
@@ -101,7 +103,6 @@ exports.placeOrder = async (req, res) => {
       },
       {
         user_id,
-        vendorId: vendor_id,
         first_name: customer_details.first_name,
         last_name: customer_details.last_name,
         phone: customer_details.phone,
@@ -115,10 +116,18 @@ exports.placeOrder = async (req, res) => {
       }
     );
 
+    // POPULATE user_id (User table) and vendorId (Vendor table) before sending response
+    order = await Order.findById(order._id)
+      .populate("user_id")
+      .populate("vendorId");
+
     res.status(201).json({
       success: true,
       message: "Order placed successfully",
-      order,
+      order: {
+        ...order.toObject(),
+        items: orderItems,
+      },
     });
   } catch (error) {
     res.status(500).json({
@@ -206,9 +215,15 @@ exports.getOrdersByUser = async (req, res) => {
   try {
     const { userId } = req.params;
 
+    // NOTE: populate("user_id") and populate("vendorId") added here.
+    // Pehle ye missing tha, isliye is route se user/vendor ka full
+    // data nahi aa raha tha, sirf raw ObjectId aa raha tha.
     const orders = await Order.find({
       user_id: userId,
-    }).sort({ createdAt: -1 });
+    })
+      .populate("user_id")
+      .populate("vendorId")
+      .sort({ createdAt: -1 });
 
     const data = await Promise.all(
       orders.map(async (order) => {
@@ -289,7 +304,16 @@ exports.updateOrderStatus = async (req, res) => {
       {
         new: true,
       }
-    );
+    )
+      .populate("user_id")
+      .populate("vendorId");
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found",
+      });
+    }
 
     res.json({
       success: true,
