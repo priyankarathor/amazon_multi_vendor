@@ -1,5 +1,57 @@
 const Banner = require('../models/Banner');
 const Product = require('../models/Product');
+const mongoose = require('mongoose');
+
+const normalizeOption = (value) => {
+    if (!value) return value;
+    const normalized = String(value).trim().toLowerCase().replace(/[\s-]+/g, '_');
+    const aliases = {
+        home: 'home_page',
+        homepage: 'home_page',
+        category: 'category_page',
+        categorypage: 'category_page',
+        product: 'product_page',
+        productpage: 'product_page',
+    };
+
+    return aliases[normalized] || normalized;
+};
+
+const pickAlias = (source, fields) => {
+    for (const field of fields) {
+        if (source[field] !== undefined) return source[field];
+    }
+    return undefined;
+};
+
+const buildBannerFilters = (query = {}) => {
+    const vendorId = pickAlias(query, ['vendorId', 'venderid', 'vendor_id', 'vender_id']);
+    const categoryId = pickAlias(query, ['categoryId', 'category_id']);
+    const sessionType = pickAlias(query, ['session_type', 'sessiontype', 'sessionType']);
+
+    const filters = {};
+
+    if (vendorId) filters.vendorId = vendorId;
+    if (categoryId) filters.categoryId = categoryId;
+    if (sessionType) filters.session_type = normalizeOption(sessionType);
+
+    return filters;
+};
+
+const validateObjectId = (value, fieldName) => {
+    if (value && !mongoose.Types.ObjectId.isValid(String(value))) {
+        return `${fieldName} must be a valid MongoDB ObjectId`;
+    }
+
+    return null;
+};
+
+const validateBannerFilters = (filters) => {
+    return (
+        validateObjectId(filters.vendorId, 'venderid/vendorId') ||
+        validateObjectId(filters.categoryId, 'categoryId')
+    );
+};
 
 // ─────────────────────────────────────────────────────────────────
 // GET /api/banners
@@ -8,13 +60,20 @@ const Product = require('../models/Product');
 exports.getAllBanners = async (req, res) => {
     try {
         const now = new Date();
+        const filters = buildBannerFilters(req.query);
+        const validationError = validateBannerFilters(filters);
+
+        if (validationError) {
+            return res.status(422).json({ success: false, message: validationError });
+        }
 
         const banners = await Banner.find({
+            ...filters,
             is_active: true,
             $or: [
-                // Banner has a date range and we are within it
                 { starts_at: { $lte: now }, ends_at: { $gte: now } },
-                // Banner has no date restriction
+                { starts_at: { $lte: now }, ends_at: null },
+                { starts_at: null, ends_at: { $gte: now } },
                 { starts_at: null, ends_at: null },
             ],
         })
@@ -35,6 +94,12 @@ exports.getAllBanners = async (req, res) => {
 // ─────────────────────────────────────────────────────────────────
 exports.getBannerProducts = async (req, res) => {
     try {
+        const validationError = validateObjectId(req.params.id, 'banner id');
+
+        if (validationError) {
+            return res.status(422).json({ success: false, message: validationError });
+        }
+
         // Step 1: Load the banner
         const banner = await Banner.findById(req.params.id)
             .populate('vendorId', 'name companyname')
@@ -42,6 +107,13 @@ exports.getBannerProducts = async (req, res) => {
 
         if (!banner) {
             return res.status(404).json({ success: false, message: 'Banner not found' });
+        }
+
+        if (!banner.vendorId || !banner.categoryId) {
+            return res.status(400).json({
+                success: false,
+                message: 'Banner vendor or category is missing',
+            });
         }
 
         // Step 2: Check if banner is active

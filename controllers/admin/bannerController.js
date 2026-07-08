@@ -2,6 +2,7 @@ const Banner = require("../../models/Banner");
 const Vendor = require("../../models/Vender");
 const Category = require("../../models/Category");
 const Product = require("../../models/Product");
+const mongoose = require("mongoose");
 
 const normalizeOption = (value) => {
   if (!value) return value;
@@ -33,6 +34,7 @@ const pickAlias = (body, fields) => {
 
 const normalizeBannerPayload = (body, { withDefaults = false } = {}) => {
   const sessionType = pickAlias(body, ["session_type", "sessiontype", "sessionType"]);
+  const vendorId = pickAlias(body, ["vendorId", "venderid", "vendor_id", "vender_id"]);
   const specialization = pickAlias(body, [
     "specialization",
     "spacilization",
@@ -43,7 +45,7 @@ const normalizeBannerPayload = (body, { withDefaults = false } = {}) => {
   const payload = {
     title: body.title,
     image_url: body.image_url,
-    vendorId: body.vendorId,
+    vendorId,
     categoryId: body.categoryId,
     session_type: normalizeOption(sessionType),
     specialization: normalizeOption(specialization),
@@ -62,6 +64,32 @@ const normalizeBannerPayload = (body, { withDefaults = false } = {}) => {
 
   return payload;
 };
+
+const buildBannerFilters = (query = {}) => {
+  const vendorId = pickAlias(query, ["vendorId", "venderid", "vendor_id", "vender_id"]);
+  const sessionType = pickAlias(query, ["session_type", "sessiontype", "sessionType"]);
+  const categoryId = pickAlias(query, ["categoryId", "category_id"]);
+
+  const filters = {};
+
+  if (vendorId) filters.vendorId = vendorId;
+  if (categoryId) filters.categoryId = categoryId;
+  if (sessionType) filters.session_type = normalizeOption(sessionType);
+
+  return filters;
+};
+
+const validateObjectId = (value, fieldName) => {
+  if (value && !mongoose.Types.ObjectId.isValid(String(value))) {
+    return `${fieldName} must be a valid MongoDB ObjectId`;
+  }
+
+  return null;
+};
+
+const validateBannerFilters = (filters) =>
+  validateObjectId(filters.vendorId, "venderid/vendorId") ||
+  validateObjectId(filters.categoryId, "categoryId");
 
 const validateBannerPayload = async (payload, { requireAll = false } = {}) => {
   const missingFields = [];
@@ -82,11 +110,17 @@ const validateBannerPayload = async (payload, { requireAll = false } = {}) => {
   }
 
   if (payload.vendorId) {
+    const invalidVendorId = validateObjectId(payload.vendorId, "venderid/vendorId");
+    if (invalidVendorId) return { status: 422, message: invalidVendorId };
+
     const vendor = await Vendor.findById(payload.vendorId);
     if (!vendor) return { status: 404, message: "Vendor not found" };
   }
 
   if (payload.categoryId) {
+    const invalidCategoryId = validateObjectId(payload.categoryId, "categoryId");
+    if (invalidCategoryId) return { status: 422, message: invalidCategoryId };
+
     const category = await Category.findById(payload.categoryId);
     if (!category) return { status: 404, message: "Category not found" };
   }
@@ -157,7 +191,16 @@ exports.createBanner = async (req, res) => {
 
 exports.getAllBanners = async (req, res) => {
   try {
-    const banners = await populateBanner(Banner.find()).sort({ createdAt: -1 });
+    const filters = buildBannerFilters(req.query);
+    const validationError = validateBannerFilters(filters);
+
+    if (validationError) {
+      return res.status(422).json({ success: false, message: validationError });
+    }
+
+    const banners = await populateBanner(Banner.find(filters)).sort({
+      createdAt: -1,
+    });
 
     const data = await Promise.all(
       banners.map(async (banner) => ({
@@ -174,6 +217,12 @@ exports.getAllBanners = async (req, res) => {
 
 exports.getBanner = async (req, res) => {
   try {
+    const validationError = validateObjectId(req.params.id, "banner id");
+
+    if (validationError) {
+      return res.status(422).json({ success: false, message: validationError });
+    }
+
     const banner = await populateBanner(Banner.findById(req.params.id));
 
     if (!banner) {
@@ -194,6 +243,12 @@ exports.getBanner = async (req, res) => {
 
 exports.updateBanner = async (req, res) => {
   try {
+    const idValidationError = validateObjectId(req.params.id, "banner id");
+
+    if (idValidationError) {
+      return res.status(422).json({ success: false, message: idValidationError });
+    }
+
     const banner = await Banner.findById(req.params.id);
 
     if (!banner) {
@@ -228,6 +283,12 @@ exports.updateBanner = async (req, res) => {
 
 exports.deleteBanner = async (req, res) => {
   try {
+    const validationError = validateObjectId(req.params.id, "banner id");
+
+    if (validationError) {
+      return res.status(422).json({ success: false, message: validationError });
+    }
+
     const banner = await Banner.findByIdAndDelete(req.params.id);
 
     if (!banner) {
@@ -242,6 +303,12 @@ exports.deleteBanner = async (req, res) => {
 
 exports.toggleBanner = async (req, res) => {
   try {
+    const validationError = validateObjectId(req.params.id, "banner id");
+
+    if (validationError) {
+      return res.status(422).json({ success: false, message: validationError });
+    }
+
     const banner = await Banner.findById(req.params.id);
 
     if (!banner) {
