@@ -10,9 +10,12 @@ const variantSchema = new mongoose.Schema(
 
   sku: { type: String, required: true },
 
+  productUrl: { type: String, trim: true },
+
   attributes: [
     {
       name: String,   // color, size
+      code: String,
       value: String
     }
   ],

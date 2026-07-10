@@ -1,0 +1,321 @@
+{
+  "category": {
+    "createRequest": {
+      "name": "Electronics",
+      "slug": "electronics",
+      "description": "Electronic devices and accessories",
+      "image": "https://example.com/images/electronics.jpg",
+      "icon": "fa-mobile-alt",
+      "parentCategoryId": null,
+      "level": 0,
+      "status": "active",
+      "sortOrder": 1,
+      "metaTitle": "Electronics Store",
+      "metaDescription": "Shop the latest electronics"
+    },
+    "createResponse": {
+      "success": true,
+      "message": "Category created successfully",
+      "data": {
+        "_id": "64f1b2c3d4e5f67890123456",
+        "name": "Electronics",
+        "slug": "electronics",
+        "description": "Electronic devices and accessories",
+        "status": "active",
+        "level": 0,
+        "isDeleted": false,
+        "parentCategoryId": null
+      }
+    },
+    "listResponse": {
+      "success": true,
+      "data": [
+        {
+          "_id": "64f1b2c3d4e5f67890123456",
+          "name": "Electronics",
+          "slug": "electronics",
+          "status": "active",
+          "level": 0
+        }
+      ],
+      "pagination": {
+        "page": 1,
+        "limit": 20,
+        "total": 1,
+        "pages": 1
+      }
+    }
+  },
+  "categoryAttribute": {
+    "createRequest": {
+      "categoryId": "64f1b2c3d4e5f67890123456",
+      "name": "Brand",
+      "code": "brand",
+      "type": "dropdown",
+      "required": true,
+      "searchable": true,
+      "filterable": true,
+      "comparable": true,
+      "variantAttribute": true,
+      "visibleOnProductPage": true,
+      "unit": "",
+      "validation": {
+        "minLength": 2
+      },
+      "options": [
+        "Apple",
+        "Samsung",
+        "OnePlus"
+      ],
+      "defaultValue": "Apple",
+      "status": "active"
+    },
+    "createResponse": {
+      "success": true,
+      "message": "Attribute created successfully",
+      "data": {
+        "_id": "64f1b2c3d4e5f67890123457",
+        "categoryId": "64f1b2c3d4e5f67890123456",
+        "name": "Brand",
+        "code": "brand",
+        "type": "dropdown",
+        "filterable": true,
+        "status": "active"
+      }
+    }
+  },
+  "product": {
+    "createRequest": {
+      "productName": "Samsung Galaxy S25",
+      "itemName": "Samsung Galaxy S25",
+      "categoryId": "6a509c70a781e80ab7911079",
+      "vendorId": "6a462754c6c08add7b774f63",
+      "brandName": "Samsung",
+      "sku": "SGS25-128",
+      "description": {
+        "productDescription": "Samsung Galaxy S25 flagship smartphone with AI features, premium AMOLED display, Snapdragon processor, and advanced camera system.",
+        "bulletPoints": [
+          "6.2-inch Dynamic AMOLED 2X Display",
+          "Snapdragon 8 Elite Processor",
+          "50MP Triple Rear Camera",
+          "12MP Front Camera",
+          "128GB Internal Storage",
+          "4000mAh Battery",
+          "5G Connectivity",
+          "Android 16"
+        ]
+      },
+      "images": [
+        "https://example.com/images/s25-front.jpg",
+        "https://example.com/images/s25-back.jpg",
+        "https://example.com/images/s25-side.jpg"
+      ],
+      "isActive": true,
+      "status": "draft",
+      "tags": [
+        "mobile",
+        "smartphone",
+        "android",
+        "samsung",
+        "5g"
+      ],
+      "attributes": [
+        {
+          "name": "Brand",
+          "code": "brand",
+          "value": "Samsung",
+          "type": "dropdown",
+          "unit": ""
+        },
+        {
+          "name": "Model",
+          "code": "model",
+          "value": "Galaxy S25",
+          "type": "text",
+          "unit": ""
+        },
+        {
+          "name": "Storage",
+          "code": "storage",
+          "value": "128 GB",
+          "type": "dropdown",
+          "unit": ""
+        },
+        {
+          "name": "RAM",
+          "code": "ram",
+          "value": "12 GB",
+          "type": "dropdown",
+          "unit": ""
+        },
+        {
+          "name": "Color",
+          "code": "color",
+          "value": "Black",
+          "type": "dropdown",
+          "unit": ""
+        },
+        {
+          "name": "Display Size",
+          "code": "display_size",
+          "value": "6.2",
+          "type": "number",
+          "unit": "inch"
+        },
+        {
+          "name": "Battery",
+          "code": "battery",
+          "value": "4000",
+          "type": "number",
+          "unit": "mAh"
+        },
+        {
+          "name": "Network",
+          "code": "network",
+          "value": "5G",
+          "type": "dropdown",
+          "unit": ""
+        },
+        {
+          "name": "Operating System",
+          "code": "operating_system",
+          "value": "Android 16",
+          "type": "text",
+          "unit": ""
+        }
+      ],
+      "variants": [
+        {
+          "sku": "SGS25-128-BLK",
+          "attributes": [
+            {
+              "name": "Color",
+              "code": "color",
+              "value": "Black"
+            },
+            {
+              "name": "Storage",
+              "code": "storage",
+              "value": "128 GB"
+            }
+          ],
+          "inventory": {
+            "stock": 10,
+            "maxQty": 5,
+            "isActive": true
+          }
+        },
+        {
+          "sku": "SGS25-256-BLK",
+          "attributes": [
+            {
+              "name": "Color",
+              "code": "color",
+              "value": "Black"
+            },
+            {
+              "name": "Storage",
+              "code": "storage",
+              "value": "256 GB"
+            }
+          ],
+          "inventory": {
+            "stock": 8,
+            "maxQty": 5,
+            "isActive": true
+          }
+        },
+        {
+          "sku": "SGS25-128-BLU",
+          "attributes": [
+            {
+              "name": "Color",
+              "code": "color",
+              "value": "Blue"
+            },
+            {
+              "name": "Storage",
+              "code": "storage",
+              "value": "128 GB"
+            }
+          ],
+          "inventory": {
+            "stock": 12,
+            "maxQty": 5,
+            "isActive": true
+          }
+        }
+      ]
+    },
+    "createResponse": {
+      "success": true,
+      "message": "Product created successfully",
+      "product": {
+        "_id": "64f1b2c3d4e5f67890123458",
+        "productName": "Samsung Galaxy S25",
+        "sku": "SGS25-128",
+        "status": "draft",
+        "attributes": [
+          {
+            "name": "Brand",
+            "code": "brand",
+            "value": "Samsung"
+          }
+        ],
+        "variants": [
+          {
+            "sku": "SGS25-128-BLK",
+            "inventory": {
+              "stock": 10,
+              "stockStatus": "in_stock"
+            }
+          }
+        ]
+      }
+    },
+    "searchResponse": {
+      "success": true,
+      "data": [
+        {
+          "_id": "64f1b2c3d4e5f67890123458",
+          "productName": "Samsung Galaxy S25",
+          "sku": "SGS25-128",
+          "brandName": "Samsung"
+        }
+      ],
+      "pagination": {
+        "page": 1,
+        "limit": 20,
+        "total": 1,
+        "pages": 1
+      }
+    }
+  },
+  "dynamicFilters": {
+    "response": {
+      "success": true,
+      "data": [
+        {
+          "name": "Brand",
+          "code": "brand",
+          "type": "dropdown",
+          "options": [
+            "Apple",
+            "Samsung",
+            "OnePlus"
+          ]
+        },
+        {
+          "name": "Storage",
+          "code": "storage",
+          "type": "dropdown",
+          "options": [
+            "128 GB",
+            "256 GB",
+            "512 GB"
+          ]
+        }
+      ]
+    }
+  }
+}

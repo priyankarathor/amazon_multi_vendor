@@ -11,7 +11,59 @@ const app = express();
 
 app.use(cors());
 
-app.use(express.json());
+app.use((req, res, next) => {
+  if (!['POST', 'PUT', 'PATCH'].includes(req.method)) {
+    return next();
+  }
+
+  const contentType = req.headers['content-type'] || '';
+  if (!contentType.includes('application/json')) {
+    return next();
+  }
+
+  let rawBody = '';
+  req.setEncoding('utf8');
+
+  req.on('data', (chunk) => {
+    rawBody += chunk;
+  });
+
+  req.on('end', () => {
+    if (!rawBody || !rawBody.trim()) {
+      req.body = {};
+      return next();
+    }
+
+    const trimmed = rawBody.trim();
+    let parsedBody;
+
+    try {
+      parsedBody = JSON.parse(trimmed);
+    } catch (error) {
+      try {
+        parsedBody = JSON.parse(trimmed.replace(/^"|"$/g, ''));
+      } catch (innerError) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid JSON body',
+          detail: 'Please send a valid JSON object body'
+        });
+      }
+    }
+
+    req.body = parsedBody;
+    next();
+  });
+
+  req.on('error', () => {
+    return res.status(400).json({
+      success: false,
+      message: 'Unable to read request body'
+    });
+  });
+});
+
+app.use(express.urlencoded({ extended: true }));
 
 app.get("/", (req, res) => {
   res.send("API Running");

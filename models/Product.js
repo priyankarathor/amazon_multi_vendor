@@ -5,6 +5,7 @@ const productSchema = new mongoose.Schema(
   // BASIC
   productName: { type: String, required: true },
   itemName: String,
+  productUrl: { type: String, trim: true },
   productType: String,
   recommendedBrowseNode: String,
   brandName: String,
@@ -118,7 +119,25 @@ const productSchema = new mongoose.Schema(
       name: String,
       values: [String]
     }
-  ]
+  ],
+
+  attributes: {
+    type: [mongoose.Schema.Types.Mixed],
+    default: []
+  },
+
+  status: {
+    type: String,
+    enum: ["draft", "published", "archived"],
+    default: "draft"
+  },
+
+  tags: [String],
+
+  sku: { type: String, trim: true },
+
+  deleted: { type: Boolean, default: false },
+  deletedAt: { type: Date, default: null }
 },
 { timestamps: true });
 

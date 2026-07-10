@@ -2,6 +2,8 @@ const Product = require("../models/Product");
 const Variant = require("../models/Variant");
 const Inventory = require("../models/Inventory");
 const Vendor = require("../models/Vender");
+const Category = require("../models/Category");
+const CategoryAttribute = require("../models/CategoryAttribute");
 
 const normalizeVariantAttributes = (attributes) => {
    if (!attributes) {
@@ -9,7 +11,17 @@ const normalizeVariantAttributes = (attributes) => {
    }
 
    if (Array.isArray(attributes)) {
-      return attributes;
+      return attributes.map((attribute) => {
+         if (!attribute || typeof attribute !== "object") {
+            return { name: String(attribute || ""), value: String(attribute || "") };
+         }
+
+         return {
+            name: attribute.name || "",
+            code: attribute.code || undefined,
+            value: attribute.value !== undefined ? String(attribute.value) : ""
+         };
+      });
    }
 
    return Object.entries(attributes).map(([name, value]) => ({
@@ -19,18 +31,107 @@ const normalizeVariantAttributes = (attributes) => {
 };
 
 const parseJsonField = (value, fallback) => {
+   if (value === undefined || value === null) {
+      return fallback;
+   }
+
    if (typeof value !== "string") {
-      return value === undefined ? fallback : value;
+      return value;
+   }
+
+   const trimmedValue = value.trim();
+   if (!trimmedValue) {
+      return fallback;
    }
 
    try {
-      return JSON.parse(value);
+      return JSON.parse(trimmedValue);
    } catch (error) {
-      return fallback;
+      try {
+         return Function(`"use strict"; return (${trimmedValue});`)();
+      } catch (innerError) {
+         return fallback;
+      }
    }
 };
 
 const getStockStatus = (stock) => (Number(stock) > 0 ? "in_stock" : "out_of_stock");
+
+const slugify = (value) =>
+   String(value || "")
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)/g, "");
+
+const escapeRegex = (value) => String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+const getCategoryAttributeDefinitions = async (categoryId) => {
+   if (!categoryId) {
+      return [];
+   }
+
+   return CategoryAttribute.find({ categoryId, isDeleted: false, status: "active" });
+};
+
+const normalizeProductAttributes = async (attributes, categoryId) => {
+   if (!attributes) {
+      return [];
+   }
+
+   const attributeDefinitions = await getCategoryAttributeDefinitions(categoryId);
+   const attributeMap = new Map(
+      attributeDefinitions.map((attribute) => [String(attribute.code || attribute.name).toLowerCase(), attribute])
+   );
+
+   if (Array.isArray(attributes)) {
+      return attributes.map((attribute) => {
+         if (!attribute || typeof attribute !== "object") {
+            return { name: String(attribute || ""), code: slugify(attribute), value: attribute };
+         }
+
+         const code = attribute.code || attribute.name;
+         const definition = attributeMap.get(String(code).toLowerCase()) || attributeMap.get(String(attribute.name).toLowerCase());
+
+         return {
+            name: definition?.name || attribute.name || code,
+            code: definition?.code || attribute.code || slugify(code),
+            value: attribute.value,
+            type: definition?.type || attribute.type || "text",
+            unit: definition?.unit || attribute.unit || ""
+         };
+      });
+   }
+
+   if (typeof attributes === "object") {
+      return Object.entries(attributes).map(([name, value]) => {
+         const code = name;
+         const definition = attributeMap.get(String(code).toLowerCase());
+
+         return {
+            name: definition?.name || name,
+            code: definition?.code || slugify(code),
+            value,
+            type: definition?.type || "text",
+            unit: definition?.unit || ""
+         };
+      });
+   }
+
+   return [];
+};
+
+const buildCategoryFilterOptions = async (categoryId) => {
+   const attributes = await getCategoryAttributeDefinitions(categoryId);
+   const filterableAttributes = attributes.filter((attribute) => attribute.filterable);
+
+   return filterableAttributes.map((attribute) => ({
+      name: attribute.name,
+      code: attribute.code,
+      type: attribute.type,
+      options: attribute.options || []
+   }));
+};
 
 const buildVariantResponse = (variant, inventory) => ({
    ...variant.toObject(),
@@ -87,11 +188,23 @@ const upsertVariantWithInventory = async ({ productId, vendorId, variantData }) 
    const variantPayload = {};
 
    if (variantData.sku !== undefined) variantPayload.sku = variantData.sku;
+   if (variantData.productUrl !== undefined) variantPayload.productUrl = variantData.productUrl;
+   if (variantData.images !== undefined) variantPayload.images = variantData.images;
    if (variantData.attributes !== undefined) {
       variantPayload.attributes = normalizeVariantAttributes(variantData.attributes);
    }
    if (variantData.images !== undefined) variantPayload.images = variantData.images;
    if (variantData.offer !== undefined) variantPayload.offer = variantData.offer;
+   if (variantData.mrp !== undefined || variantData.sellingPrice !== undefined || variantData.salePrice !== undefined || variantData.handlingTime !== undefined || variantData.itemCondition !== undefined) {
+      variantPayload.offer = {
+         ...(variantData.offer || {}),
+         ...(variantData.mrp !== undefined ? { mrp: variantData.mrp } : {}),
+         ...(variantData.sellingPrice !== undefined ? { sellingPrice: variantData.sellingPrice } : {}),
+         ...(variantData.salePrice !== undefined ? { salePrice: variantData.salePrice } : {}),
+         ...(variantData.handlingTime !== undefined ? { handlingTime: variantData.handlingTime } : {}),
+         ...(variantData.itemCondition !== undefined ? { itemCondition: variantData.itemCondition } : {})
+      };
+   }
 
    if (variantData.isActive !== undefined) {
       variantPayload.isActive = variantData.isActive;
@@ -158,14 +271,17 @@ const upsertVariantWithInventory = async ({ productId, vendorId, variantData }) 
 
 const createProduct = async (req, res) => {
    try {
-      let { variants, vendorId, ...productData } = req.body;
+      const payload = typeof req.body === 'string' ? parseJsonField(req.body, {}) : (req.body && typeof req.body === 'object' ? req.body : {});
+      let { variants, vendorId, attributes, ...productData } = payload;
       variants = parseJsonField(variants, []);
+      attributes = parseJsonField(attributes, undefined);
 
       const missingFields = ["productName", "categoryId"].filter(
          (field) => !productData[field]
       );
 
-      if (!vendorId) {
+      const resolvedVendorId = vendorId || req.user?.vendorId || req.user?.id;
+      if (!resolvedVendorId) {
          missingFields.push("vendorId");
       }
 
@@ -176,9 +292,24 @@ const createProduct = async (req, res) => {
          });
       }
 
+      const category = await Category.findOne({ _id: productData.categoryId, isDeleted: false });
+      if (!category) {
+         return res.status(404).json({ success: false, message: "Category not found" });
+      }
+
+      const parsedAttributes = await normalizeProductAttributes(attributes, productData.categoryId);
       const product = await Product.create({
          ...productData,
-         vendorId
+         vendorId: resolvedVendorId,
+         attributes: parsedAttributes,
+         status: productData.status || "draft",
+         tags: productData.tags || [],
+         images: productData.images || [],
+         description: productData.description || {},
+         sku: productData.sku || undefined,
+         productUrl: productData.productUrl || undefined,
+         deleted: false,
+         deletedAt: null,
       });
 
       let createdVariants = [];
@@ -187,7 +318,7 @@ const createProduct = async (req, res) => {
          for (let v of variants) {
             const variant = await upsertVariantWithInventory({
                productId: product._id,
-               vendorId,
+               vendorId: resolvedVendorId,
                variantData: v
             });
 
@@ -199,6 +330,7 @@ const createProduct = async (req, res) => {
 
       return res.status(201).json({
          success: true,
+         message: "Product created successfully",
          product: data,
          variants: createdVariants
       });
@@ -214,11 +346,13 @@ const createProduct = async (req, res) => {
 const updateProduct = async (req, res) => {
    try {
       const { productId } = req.params;
-      let { variants, vendorId, ...productData } = req.body;
+      const payload = typeof req.body === 'string' ? parseJsonField(req.body, {}) : (req.body && typeof req.body === 'object' ? req.body : {});
+      let { variants, vendorId, attributes, ...productData } = payload;
       variants = parseJsonField(variants, undefined);
+      attributes = parseJsonField(attributes, undefined);
 
       const product = await Product.findById(productId);
-      if (!product) {
+      if (!product || product.deleted) {
          return res.status(404).json({
             success: false,
             message: "Product not found"
@@ -239,6 +373,14 @@ const updateProduct = async (req, res) => {
             product[field] = value;
          }
       });
+
+      if (attributes !== undefined) {
+         product.attributes = await normalizeProductAttributes(attributes, product.categoryId);
+      }
+
+      if (productData.status) {
+         product.status = productData.status;
+      }
 
       await product.save();
 
@@ -296,19 +438,179 @@ const getProductDetails = async (req, res) => {
 
 const productfetch = async (req, res) => {
    try {
-      const productdata = await Product.find()
+      const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+      const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 20));
+      const skip = (page - 1) * limit;
+      const categoryId = req.query.categoryId;
+      const vendorId = req.query.vendorId;
+      const status = req.query.status;
+      const isActive = req.query.isActive;
+      const sortBy = req.query.sortBy || "createdAt";
+      const sortOrder = req.query.sortOrder === "asc" ? 1 : -1;
+
+      const query = { deleted: false };
+      if (categoryId) query.categoryId = categoryId;
+      if (vendorId) query.vendorId = vendorId;
+      if (status) query.status = status;
+      if (isActive !== undefined) query.isActive = isActive === "true";
+
+      const total = await Product.countDocuments(query);
+      const productdata = await Product.find(query)
          .populate("vendorId", "name companyname")
-         .populate("categoryId", "name slug");
+         .populate("categoryId", "name slug")
+         .sort([[sortBy, sortOrder], ["createdAt", -1]])
+         .skip(skip)
+         .limit(limit);
 
       res.status(200).json({
          success: true,
-         data: productdata
+         data: productdata,
+         pagination: {
+            page,
+            limit,
+            total,
+            pages: Math.ceil(total / limit),
+         }
       });
    } catch (error) {
       res.status(500).json({
          success: false,
          message: error.message
       });
+   }
+};
+
+const deleteProduct = async (req, res) => {
+   try {
+      const product = await Product.findById(req.params.productId);
+      if (!product || product.deleted) {
+         return res.status(404).json({ success: false, message: "Product not found" });
+      }
+
+      product.deleted = true;
+      product.deletedAt = new Date();
+      product.status = "archived";
+      await product.save();
+
+      return res.status(200).json({ success: true, message: "Product deleted successfully" });
+   } catch (error) {
+      return res.status(500).json({ success: false, message: error.message });
+   }
+};
+
+const publishProduct = async (req, res) => {
+   try {
+      const product = await Product.findById(req.params.productId);
+      if (!product || product.deleted) {
+         return res.status(404).json({ success: false, message: "Product not found" });
+      }
+
+      product.status = "published";
+      product.isActive = true;
+      await product.save();
+
+      return res.status(200).json({ success: true, message: "Product published successfully", data: product });
+   } catch (error) {
+      return res.status(500).json({ success: false, message: error.message });
+   }
+};
+
+const archiveProduct = async (req, res) => {
+   try {
+      const product = await Product.findById(req.params.productId);
+      if (!product || product.deleted) {
+         return res.status(404).json({ success: false, message: "Product not found" });
+      }
+
+      product.status = "archived";
+      product.isActive = false;
+      await product.save();
+
+      return res.status(200).json({ success: true, message: "Product archived successfully", data: product });
+   } catch (error) {
+      return res.status(500).json({ success: false, message: error.message });
+   }
+};
+
+const duplicateProduct = async (req, res) => {
+   try {
+      const product = await Product.findById(req.params.productId);
+      if (!product || product.deleted) {
+         return res.status(404).json({ success: false, message: "Product not found" });
+      }
+
+      const productData = product.toObject();
+      delete productData._id;
+      delete productData.__v;
+      delete productData.createdAt;
+      delete productData.updatedAt;
+      delete productData.deletedAt;
+
+      const duplicatedProduct = await Product.create({
+         ...productData,
+         productName: `${productData.productName || "Product"} (Copy)`,
+         sku: productData.sku ? `${productData.sku}-copy` : undefined,
+         status: "draft",
+         isActive: false,
+         deleted: false,
+         deletedAt: null,
+      });
+
+      const variants = await Variant.find({ productId: product._id });
+      for (const variant of variants) {
+         const variantData = variant.toObject();
+         delete variantData._id;
+         delete variantData.__v;
+         delete variantData.createdAt;
+         delete variantData.updatedAt;
+         const createdVariant = await Variant.create({ ...variantData, productId: duplicatedProduct._id });
+         const inventory = await Inventory.findOne({ productId: product._id, variantId: variant._id });
+         if (inventory) {
+            const inventoryData = inventory.toObject();
+            delete inventoryData._id;
+            delete inventoryData.__v;
+            delete inventoryData.createdAt;
+            delete inventoryData.updatedAt;
+            await Inventory.create({
+               ...inventoryData,
+               productId: duplicatedProduct._id,
+               variantId: createdVariant._id,
+            });
+         }
+      }
+
+      const data = await getProductWithVariants(duplicatedProduct._id);
+      return res.status(201).json({ success: true, message: "Product duplicated successfully", data });
+   } catch (error) {
+      return res.status(500).json({ success: false, message: error.message });
+   }
+};
+
+const bulkUpdateProducts = async (req, res) => {
+   try {
+      const { ids = [], update = {} } = req.body;
+      if (!Array.isArray(ids) || ids.length === 0) {
+         return res.status(400).json({ success: false, message: "At least one product id is required" });
+      }
+
+      const result = await Product.updateMany({ _id: { $in: ids } }, update);
+      return res.status(200).json({ success: true, message: "Products updated successfully", data: result });
+   } catch (error) {
+      return res.status(500).json({ success: false, message: error.message });
+   }
+};
+
+const bulkDeleteProducts = async (req, res) => {
+   try {
+      const { ids = [] } = req.body;
+      if (!Array.isArray(ids) || ids.length === 0) {
+         return res.status(400).json({ success: false, message: "At least one product id is required" });
+      }
+
+      await Product.updateMany({ _id: { $in: ids } }, { deleted: true, deletedAt: new Date(), status: "archived" });
+      return res.status(200).json({ success: true, message: "Products deleted successfully" });
+   } catch (error) {
+      return res.status(500).json({ success: false, message: error.message });
    }
 };
 
@@ -547,6 +849,71 @@ const filterProducts = async (req, res) => {
    }
 };
 
+const searchProducts = async (req, res) => {
+   try {
+      const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+      const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 20));
+      const skip = (page - 1) * limit;
+      const q = req.query.q || req.query.search || "";
+      const categoryId = req.query.categoryId;
+      const vendorId = req.query.vendorId;
+      const status = req.query.status;
+      const isActive = req.query.isActive;
+      const sortBy = req.query.sortBy || "createdAt";
+      const sortOrder = req.query.sortOrder === "asc" ? 1 : -1;
+
+      const query = { deleted: false };
+      if (q) {
+         query.$or = [
+            { productName: { $regex: escapeRegex(q), $options: "i" } },
+            { sku: { $regex: escapeRegex(q), $options: "i" } },
+            { brandName: { $regex: escapeRegex(q), $options: "i" } },
+            { tags: { $in: [new RegExp(escapeRegex(q), "i")] } },
+            { description: { $regex: escapeRegex(q), $options: "i" } },
+         ];
+      }
+      if (categoryId) query.categoryId = categoryId;
+      if (vendorId) query.vendorId = vendorId;
+      if (status) query.status = status;
+      if (isActive !== undefined) query.isActive = isActive === "true";
+
+      const total = await Product.countDocuments(query);
+      const products = await Product.find(query)
+         .populate("vendorId", "name companyname")
+         .populate("categoryId", "name slug")
+         .sort([[sortBy, sortOrder], ["createdAt", -1]])
+         .skip(skip)
+         .limit(limit);
+
+      return res.status(200).json({
+         success: true,
+         data: products,
+         pagination: {
+            page,
+            limit,
+            total,
+            pages: Math.ceil(total / limit),
+         },
+      });
+   } catch (error) {
+      return res.status(500).json({ success: false, message: error.message });
+   }
+};
+
+const getDynamicFilters = async (req, res) => {
+   try {
+      const categoryId = req.params.categoryId || req.query.categoryId;
+      if (!categoryId) {
+         return res.status(400).json({ success: false, message: "categoryId is required" });
+      }
+
+      const options = await buildCategoryFilterOptions(categoryId);
+      return res.status(200).json({ success: true, data: options });
+   } catch (error) {
+      return res.status(500).json({ success: false, message: error.message });
+   }
+};
+
 const getVendorProducts = async (req, res) => {
    try {
       console.log("USER:", req.user);
@@ -563,7 +930,8 @@ const getVendorProducts = async (req, res) => {
       }
 
       const productdata = await Product.find({
-         vendorId: vendorIdFromParams
+         vendorId: vendorIdFromParams,
+         deleted: false
       });
 
       res.status(200).json({
@@ -582,6 +950,12 @@ const getVendorProducts = async (req, res) => {
 module.exports = {
    createProduct,
    updateProduct,
+   deleteProduct,
+   publishProduct,
+   archiveProduct,
+   duplicateProduct,
+   bulkUpdateProducts,
+   bulkDeleteProducts,
    getProductDetails,
    productfetch,
    getVendorProducts,
@@ -589,5 +963,7 @@ module.exports = {
    getVendorInventory,
    updateInventory,
    updateVariantStatus,
-   filterProducts
+   filterProducts,
+   searchProducts,
+   getDynamicFilters
 };
