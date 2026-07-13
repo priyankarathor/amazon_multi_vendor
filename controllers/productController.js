@@ -480,6 +480,50 @@ const productfetch = async (req, res) => {
    }
 };
 
+const productfetchdetails = async (req, res) => {
+   try {
+      const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+      const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 20));
+      const skip = (page - 1) * limit;
+      const categoryId = req.query.categoryId;
+      const vendorId = req.query.vendorId;
+      const status = req.query.status;
+      const isActive = req.query.isActive;
+      const sortBy = req.query.sortBy || "createdAt";
+      const sortOrder = req.query.sortOrder === "asc" ? 1 : -1;
+
+      const query = { deleted: false };
+      if (categoryId) query.categoryId = categoryId;
+      if (vendorId) query.vendorId = vendorId;
+      if (status) query.status = status;
+      if (isActive !== undefined) query.isActive = isActive === "true";
+
+      const total = await Product.countDocuments(query);
+      const productdata = await Product.find(query)
+         .populate("vendorId", "name companyname")
+         .populate("categoryId", "name slug")
+         .sort([[sortBy, sortOrder], ["createdAt", -1]])
+         .skip(skip)
+         .limit(limit);
+
+      res.status(200).json({
+         success: true,
+         data: productdata,
+         pagination: {
+            page,
+            limit,
+            total,
+            pages: Math.ceil(total / limit),
+         }
+      });
+   } catch (error) {
+      res.status(500).json({
+         success: false,
+         message: error.message
+      });
+   }
+};
+
 const deleteProduct = async (req, res) => {
    try {
       const product = await Product.findById(req.params.productId);
@@ -965,5 +1009,6 @@ module.exports = {
    updateVariantStatus,
    filterProducts,
    searchProducts,
-   getDynamicFilters
+   getDynamicFilters,
+   productfetchdetails
 };

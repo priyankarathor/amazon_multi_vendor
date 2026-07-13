@@ -21,7 +21,11 @@ router.get("/inventory/vendor/:vendorId", verifyToken, productController.getVend
 router.put("/inventory/:vendorId/:productId/:variantId", verifyToken, productController.updateInventory);
 router.patch("/variant/:variantId/status", verifyToken, productController.updateVariantStatus);
 router.get("/vendor/:vendorId", verifyToken, productController.getVendorProducts);
-router.get("/", verifyToken, productController.productfetch);
+
+router.get("/product", verifyToken, productController.productfetch);
+
+router.get("/", productController.productfetchdetails);
+
 router.get("/:productId", verifyToken, productController.getProductDetails);
 
 module.exports = router;
