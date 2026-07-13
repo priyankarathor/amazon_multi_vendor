@@ -160,6 +160,50 @@ const getCategories = async (req, res) => {
   }
 };
 
+const getCategoriesdata = async (req, res) => {
+  try {
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 20));
+    const skip = (page - 1) * limit;
+    const search = req.query.search || "";
+    const status = req.query.status;
+    const parentCategoryId = req.query.parentCategoryId;
+
+    const query = { isDeleted: false };
+    if (status) query.status = status;
+    if (parentCategoryId) query.parentCategoryId = parentCategoryId;
+    if (search) {
+      query.$or = [
+        { name: { $regex: escapeRegex(search), $options: "i" } },
+        { slug: { $regex: escapeRegex(search), $options: "i" } },
+        { description: { $regex: escapeRegex(search), $options: "i" } },
+      ];
+    }
+
+    const sortBy = req.query.sortBy || "sortOrder";
+    const sortOrder = req.query.sortOrder === "asc" ? 1 : -1;
+    const total = await Category.countDocuments(query);
+    const data = await Category.find(query)
+      .populate("parentCategoryId", "name slug")
+      .sort([[sortBy, sortOrder], ["name", 1]])
+      .skip(skip)
+      .limit(limit);
+
+    return res.status(200).json({
+      success: true,
+      data,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit),
+      },
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 const getCategory = async (req, res) => {
   try {
     const data = await Category.findOne({ _id: req.params.id, isDeleted: false }).populate("parentCategoryId", "name slug");
@@ -305,4 +349,5 @@ module.exports = {
   getCategoryTree,
   getChildCategories,
   getParentCategories,
+  getCategoriesdata
 };
