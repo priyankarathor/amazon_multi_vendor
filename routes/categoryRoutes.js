@@ -13,7 +13,7 @@ router.get("/categorydata", verifyToken, controller.getCategories);
 
 router.get("/",  controller.getCategoriesdata);
 
-router.get("/:id", verifyToken, controller.getCategory);
+router.get("/:id",  controller.getCategory);
 router.put("/:id", verifyToken, authorizeRoles("SuperAdmin", "Vendor"), controller.updateCategory);
 router.delete("/delete/:id", verifyToken, authorizeRoles("SuperAdmin"), controller.deleteCategory);
 
