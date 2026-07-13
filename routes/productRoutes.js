@@ -25,7 +25,7 @@ router.get("/vendor/:vendorId", verifyToken, productController.getVendorProducts
 router.get("/product", verifyToken, productController.productfetch);
 
 router.get("/", productController.productfetchdetails);
-
+//get details
 router.get("/:productId", productController.getProductDetails);
 
 module.exports = router;
