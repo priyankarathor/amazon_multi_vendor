@@ -12,10 +12,10 @@ router.patch("/:productId/archive", verifyToken, authorizeRoles("SuperAdmin", "V
 router.post("/:productId/duplicate", verifyToken, authorizeRoles("SuperAdmin", "Vendor"), productController.duplicateProduct);
 router.post("/bulk-update", verifyToken, authorizeRoles("SuperAdmin", "Vendor"), productController.bulkUpdateProducts);
 router.post("/bulk-delete", verifyToken, authorizeRoles("SuperAdmin", "Vendor"), productController.bulkDeleteProducts);
-router.get("/filter", verifyToken, productController.filterProducts);
-router.get("/search", verifyToken, productController.searchProducts);
-router.get("/filters/:categoryId", verifyToken, productController.getDynamicFilters);
-router.get("/filters", verifyToken, productController.getDynamicFilters);
+router.get("/filter", productController.filterProducts);
+router.get("/search", productController.searchProducts);
+router.get("/filters/:categoryId", productController.getDynamicFilters);
+router.get("/filters", productController.getDynamicFilters);
 router.get("/inventory", verifyToken, productController.getInventory);
 router.get("/inventory/vendor/:vendorId", verifyToken, productController.getVendorInventory);
 router.put("/inventory/:vendorId/:productId/:variantId", verifyToken, productController.updateInventory);
