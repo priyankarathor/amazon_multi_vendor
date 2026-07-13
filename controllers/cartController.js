@@ -77,6 +77,7 @@ exports.getCartById = async (req, res) => {
 exports.getCartByDivid = async (req, res) => {
   try {
     const { divid } = req.params;
+    const { categoryId } = req.query;
 
     const cartData = await Cart.find({ divid })
       .populate("pid")
@@ -89,10 +90,17 @@ exports.getCartByDivid = async (req, res) => {
       });
     }
 
+    const filteredCart = categoryId
+      ? cartData.filter((item) => {
+          const product = item.pid;
+          return product && product.categoryId && product.categoryId.toString() === categoryId;
+        })
+      : cartData;
+
     res.status(200).json({
       success: true,
-      count: cartData.length,
-      data: cartData,
+      count: filteredCart.length,
+      data: filteredCart,
     });
   } catch (error) {
     res.status(500).json({

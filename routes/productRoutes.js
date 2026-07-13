@@ -14,6 +14,7 @@ router.post("/bulk-update", verifyToken, authorizeRoles("SuperAdmin", "Vendor"),
 router.post("/bulk-delete", verifyToken, authorizeRoles("SuperAdmin", "Vendor"), productController.bulkDeleteProducts);
 router.get("/filter", productController.filterProducts);
 router.get("/search", productController.searchProducts);
+router.get("/recommendations/:divid", productController.getCartRecommendations);
 router.get("/filters/:categoryId", productController.getDynamicFilters);
 router.get("/filters", productController.getDynamicFilters);
 router.get("/inventory", verifyToken, productController.getInventory);

@@ -9,6 +9,8 @@ const {
   getOrdersByVendor,
   updateOrderStatus,
   deleteOrder,
+  createProductReturn,
+  getProductReturns,
 } = require("../controllers/orderController");
 
 // Place Order
@@ -28,6 +30,10 @@ router.get("/:id", getOrderById);
 
 // Update Status
 router.put("/:id/status", updateOrderStatus);
+
+// Return Request
+router.post("/return", createProductReturn);
+router.get("/returns", getProductReturns);
 
 // Delete Order
 router.delete("/:id", deleteOrder);

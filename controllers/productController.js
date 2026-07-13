@@ -4,6 +4,7 @@ const Inventory = require("../models/Inventory");
 const Vendor = require("../models/Vender");
 const Category = require("../models/Category");
 const CategoryAttribute = require("../models/CategoryAttribute");
+const Cart = require("../models/Cart");
 
 const normalizeVariantAttributes = (attributes) => {
    if (!attributes) {
@@ -958,6 +959,63 @@ const getDynamicFilters = async (req, res) => {
    }
 };
 
+const getCartRecommendations = async (req, res) => {
+   try {
+      const { divid } = req.params;
+      const limit = Math.min(15, Math.max(1, parseInt(req.query.limit, 10) || 15));
+
+      if (!divid) {
+         return res.status(400).json({ success: false, message: "divid is required" });
+      }
+
+      const cartItems = await Cart.find({ divid })
+         .populate("pid")
+         .populate("variantId");
+
+      if (!cartItems || cartItems.length === 0) {
+         return res.status(200).json({ success: true, message: "No cart items found", count: 0, data: [] });
+      }
+
+      const categoryIds = [...new Set(
+         cartItems
+            .map((item) => item.pid?.categoryId)
+            .filter(Boolean)
+            .map((categoryId) => categoryId.toString())
+      )];
+
+      if (categoryIds.length === 0) {
+         return res.status(200).json({ success: true, message: "No categories found in cart", count: 0, data: [] });
+      }
+
+      const cartProductIds = cartItems
+         .map((item) => item.pid?._id)
+         .filter(Boolean)
+         .map((id) => id.toString());
+
+      const recommendedProducts = await Product.find({
+         deleted: false,
+         isActive: true,
+         status: "published",
+         categoryId: { $in: categoryIds },
+         _id: { $nin: cartProductIds },
+      })
+         .populate("vendorId", "name companyname")
+         .populate("categoryId", "name slug")
+         .sort({ createdAt: -1 });
+
+      const shuffled = [...recommendedProducts].sort(() => Math.random() - 0.5);
+      const data = shuffled.slice(0, limit);
+
+      return res.status(200).json({
+         success: true,
+         count: data.length,
+         data,
+      });
+   } catch (error) {
+      return res.status(500).json({ success: false, message: error.message });
+   }
+};
+
 const getVendorProducts = async (req, res) => {
    try {
       console.log("USER:", req.user);
@@ -1010,5 +1068,6 @@ module.exports = {
    filterProducts,
    searchProducts,
    getDynamicFilters,
-   productfetchdetails
+   productfetchdetails,
+   getCartRecommendations
 };

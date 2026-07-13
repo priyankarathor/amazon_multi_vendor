@@ -2,6 +2,7 @@ const Order = require("../models/Order");
 const OrderItem = require("../models/OrderItem");
 const Inventory = require("../models/Inventory");
 const CustomerAddress = require("../models/CustomerAddress");
+const ProductReturn = require("../models/ProductReturn");
 
 // =====================
 // PLACE ORDER
@@ -342,6 +343,88 @@ exports.deleteOrder = async (req, res) => {
     res.json({
       success: true,
       message: "Order Deleted",
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+exports.createProductReturn = async (req, res) => {
+  try {
+    const {
+      orderId,
+      orderItemId,
+      productId,
+      variantId,
+      customerId,
+      vendorId,
+      quantity,
+      reason,
+      notes,
+    } = req.body;
+
+    if (!orderId || !orderItemId || !productId || !variantId || !customerId || !vendorId || !quantity || !reason) {
+      return res.status(400).json({
+        success: false,
+        message: "Please provide orderId, orderItemId, productId, variantId, customerId, vendorId, quantity and reason",
+      });
+    }
+
+    const existingReturn = await ProductReturn.findOne({
+      orderItemId,
+      status: { $in: ["requested", "approved", "completed"] },
+    });
+
+    if (existingReturn) {
+      return res.status(409).json({
+        success: false,
+        message: "A return request already exists for this item",
+      });
+    }
+
+    const returnRequest = await ProductReturn.create({
+      orderId,
+      orderItemId,
+      productId,
+      variantId,
+      customerId,
+      vendorId,
+      quantity,
+      reason,
+      notes: notes || "",
+    });
+
+    res.status(201).json({
+      success: true,
+      message: "Return request created successfully",
+      data: returnRequest,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+exports.getProductReturns = async (req, res) => {
+  try {
+    const returns = await ProductReturn.find()
+      .populate("orderId")
+      .populate("orderItemId")
+      .populate("productId")
+      .populate("variantId")
+      .populate("customerId")
+      .populate("vendorId")
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      count: returns.length,
+      data: returns,
     });
   } catch (error) {
     res.status(500).json({
