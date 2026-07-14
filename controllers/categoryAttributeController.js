@@ -10,7 +10,7 @@ const slugify = (value) =>
 
 const createAttribute = async (req, res) => {
   try {
-    const { categoryId, subcategoryId, subtosubcategoryId, name, type, code } = req.body;
+    const { categoryId,  name, type, code,subcategoryId, subtosubcategoryId } = req.body;
 
     if (!categoryId || !name) {
       return res.status(400).json({ success: false, message: "categoryId and name are required" });
