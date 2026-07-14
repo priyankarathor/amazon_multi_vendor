@@ -7,6 +7,18 @@ const categoryAttributeSchema = new mongoose.Schema(
       ref: "Category",
       required: true,
     },
+
+     subcategoryId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Category",
+      required: true,
+    },
+
+     subtosubcategoryId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Category"
+    },
+
     name: { type: String, required: true, trim: true },
     code: { type: String, trim: true, lowercase: true },
     type: {

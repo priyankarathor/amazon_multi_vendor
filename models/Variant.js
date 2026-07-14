@@ -8,6 +8,7 @@ const variantSchema = new mongoose.Schema(
     required: true
   },
 
+  variantName: { type: String}, 
   sku: { type: String, required: true },
 
   productUrl: { type: String, trim: true },

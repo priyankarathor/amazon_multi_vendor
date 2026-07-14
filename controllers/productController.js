@@ -188,6 +188,7 @@ const upsertVariantWithInventory = async ({ productId, vendorId, variantData }) 
 
    const variantPayload = {};
 
+    if (variantData.variantName !== undefined) variantPayload.variantName = variantData.variantName;
    if (variantData.sku !== undefined) variantPayload.sku = variantData.sku;
    if (variantData.productUrl !== undefined) variantPayload.productUrl = variantData.productUrl;
    if (variantData.images !== undefined) variantPayload.images = variantData.images;
