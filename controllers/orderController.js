@@ -410,9 +410,17 @@ exports.createProductReturn = async (req, res) => {
   }
 };
 
-exports.getProductReturns = async (req, res) => {
+exports.getProductReturnsByVendor = async (req, res) => {
   try {
-    const returns = await ProductReturn.find()
+    const { vendorId } = req.query;
+
+    const filter = {};
+
+    if (vendorId) {
+      filter.vendorId = vendorId;
+    }
+
+    const returns = await ProductReturn.find(filter)
       .populate("orderId")
       .populate("orderItemId")
       .populate("productId")

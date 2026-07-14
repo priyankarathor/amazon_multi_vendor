@@ -11,6 +11,7 @@ const {
   deleteOrder,
   createProductReturn,
   getProductReturns,
+  getProductReturnsByVendor
 } = require("../controllers/orderController");
 
 // Place Order
@@ -33,7 +34,8 @@ router.put("/:id/status", updateOrderStatus);
 
 // Return Request
 router.post("/return", createProductReturn);
-router.get("/returns", getProductReturns);
+
+router.get("/vendordata/:vendorId", getProductReturnsByVendor);
 
 // Delete Order
 router.delete("/:id", deleteOrder);
