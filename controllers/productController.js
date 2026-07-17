@@ -1,3 +1,5 @@
+
+const mongoose = require("mongoose");
 const Product = require("../models/Product");
 const Variant = require("../models/Variant");
 const Inventory = require("../models/Inventory");
@@ -5,6 +7,7 @@ const Vendor = require("../models/Vender");
 const Category = require("../models/Category");
 const CategoryAttribute = require("../models/CategoryAttribute");
 const Cart = require("../models/Cart");
+
 
 const normalizeVariantAttributes = (attributes) => {
    if (!attributes) {
@@ -188,7 +191,7 @@ const upsertVariantWithInventory = async ({ productId, vendorId, variantData }) 
 
    const variantPayload = {};
 
-    if (variantData.variantName !== undefined) variantPayload.variantName = variantData.variantName;
+   if (variantData.variantName !== undefined) variantPayload.variantName = variantData.variantName;
    if (variantData.sku !== undefined) variantPayload.sku = variantData.sku;
    if (variantData.productUrl !== undefined) variantPayload.productUrl = variantData.productUrl;
    if (variantData.images !== undefined) variantPayload.images = variantData.images;
@@ -960,63 +963,6 @@ const getDynamicFilters = async (req, res) => {
    }
 };
 
-const getCartRecommendations = async (req, res) => {
-   try {
-      const { divid } = req.params;
-      const limit = Math.min(15, Math.max(1, parseInt(req.query.limit, 10) || 15));
-
-      if (!divid) {
-         return res.status(400).json({ success: false, message: "divid is required" });
-      }
-
-      const cartItems = await Cart.find({ divid })
-         .populate("pid")
-         .populate("variantId");
-
-      if (!cartItems || cartItems.length === 0) {
-         return res.status(200).json({ success: true, message: "No cart items found", count: 0, data: [] });
-      }
-
-      const categoryIds = [...new Set(
-         cartItems
-            .map((item) => item.pid?.categoryId)
-            .filter(Boolean)
-            .map((categoryId) => categoryId.toString())
-      )];
-
-      if (categoryIds.length === 0) {
-         return res.status(200).json({ success: true, message: "No categories found in cart", count: 0, data: [] });
-      }
-
-      const cartProductIds = cartItems
-         .map((item) => item.pid?._id)
-         .filter(Boolean)
-         .map((id) => id.toString());
-
-      const recommendedProducts = await Product.find({
-         deleted: false,
-         isActive: true,
-         status: "published",
-         categoryId: { $in: categoryIds },
-         _id: { $nin: cartProductIds },
-      })
-         .populate("vendorId", "name companyname")
-         .populate("categoryId", "name slug")
-         .sort({ createdAt: -1 });
-
-      const shuffled = [...recommendedProducts].sort(() => Math.random() - 0.5);
-      const data = shuffled.slice(0, limit);
-
-      return res.status(200).json({
-         success: true,
-         count: data.length,
-         data,
-      });
-   } catch (error) {
-      return res.status(500).json({ success: false, message: error.message });
-   }
-};
-
 const getVendorProducts = async (req, res) => {
    try {
       console.log("USER:", req.user);
@@ -1044,6 +990,155 @@ const getVendorProducts = async (req, res) => {
 
    } catch (error) {
       res.status(500).json({
+         success: false,
+         message: error.message
+      });
+   }
+};
+
+
+const getCartRecommendations = async (req, res) => {
+   try {
+      const { divid } = req.params;
+      const limit = parseInt(req.query.limit) || 10;
+
+      if (!divid) {
+         return res.status(400).json({
+            success: false,
+            message: "Device ID is required"
+         });
+      }
+
+      // Step 1: Find cart items by device ID
+      const cartItems = await Cart.find({ divid });
+
+      if (!cartItems.length) {
+         return res.status(200).json({
+            success: true,
+            message: "Cart is empty",
+            count: 0,
+            data: []
+         });
+      }
+
+      // Step 2: Get cart product IDs
+      const cartProductIds = cartItems
+         .filter(item => item.pid)
+         .map(item => item.pid);
+
+      // Step 3: Get category/subcategory from Cart
+      let categoryIds = [
+         ...new Set(
+            cartItems
+               .filter(item => item.categoryId)
+               .map(item => item.categoryId.toString())
+         )
+      ];
+
+      let subCategoryIds = [
+         ...new Set(
+            cartItems
+               .filter(item => item.subcategoryId)
+               .map(item => item.subcategoryId.toString())
+         )
+      ];
+
+      // Step 4: If category/subcategory not available in Cart,
+      // fetch from Product
+      if (categoryIds.length === 0 && subCategoryIds.length === 0) {
+
+         const cartProducts = await Product.find({
+            _id: { $in: cartProductIds }
+         }).select("categoryId subCategoryId");
+
+         categoryIds = [
+            ...new Set(
+               cartProducts
+                  .filter(item => item.categoryId)
+                  .map(item => item.categoryId.toString())
+            )
+         ];
+
+         subCategoryIds = [
+            ...new Set(
+               cartProducts
+                  .filter(item => item.subCategoryId)
+                  .map(item => item.subCategoryId.toString())
+            )
+         ];
+      }
+
+      // Step 5: Build query
+      const query = {
+         deleted: false,
+         isActive: true,
+         status: "published",
+         _id: { $nin: cartProductIds }
+      };
+
+      if (categoryIds.length || subCategoryIds.length) {
+         query.$or = [];
+
+         if (categoryIds.length) {
+            query.$or.push({
+               categoryId: {
+                  $in: categoryIds.map(
+                     id => new mongoose.Types.ObjectId(id)
+                  )
+               }
+            });
+         }
+
+         if (subCategoryIds.length) {
+            query.$or.push({
+               subCategoryId: {
+                  $in: subCategoryIds.map(
+                     id => new mongoose.Types.ObjectId(id)
+                  )
+               }
+            });
+         }
+      }
+
+      // Step 6: Random Products
+      const recommendations = await Product.aggregate([
+         {
+            $match: query
+         },
+         {
+            $sample: {
+               size: limit
+            }
+         }
+      ]);
+
+      // Step 7: Populate
+      const data = await Product.populate(recommendations, [
+         {
+            path: "vendorId",
+            select: "name companyname"
+         },
+         {
+            path: "categoryId",
+            select: "name slug"
+         },
+         {
+            path: "subCategoryId",
+            select: "name slug"
+         }
+      ]);
+
+      return res.status(200).json({
+         success: true,
+         message: "Recommended products fetched successfully",
+         count: data.length,
+         data
+      });
+
+   } catch (error) {
+      console.error(error);
+
+      return res.status(500).json({
          success: false,
          message: error.message
       });

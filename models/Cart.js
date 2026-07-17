@@ -16,6 +16,19 @@ const cartSchema = new mongoose.Schema(
       required: true,
     },
 
+    categoryId:{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Category",
+      required: true,
+    },
+
+    subcategoryId:{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "SubCategory",
+      required: true,
+    },
+
+
     // Product Variant
     variantId: {
       type: mongoose.Schema.Types.ObjectId,

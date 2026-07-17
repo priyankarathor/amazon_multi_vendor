@@ -28,4 +28,5 @@ router.get("/", productController.productfetchdetails);
 //get details
 router.get("/:productId", productController.getProductDetails);
 
+
 module.exports = router;
