@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const Cart = require("../models/Cart");
+const Product = require("../models/Product")
 
 // Create Cart
 exports.createCart = async (req, res) => {
@@ -233,6 +234,82 @@ exports.deleteCart = async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+;
+
+exports.getRecommendedProductsByDivid = async (req, res) => {
+  try {
+    const { divid } = req.params;
+
+    // Get Cart Data
+    const cartItems = await Cart.find({ divid }).populate("pid");
+
+    if (!cartItems.length) {
+      return res.status(404).json({
+        success: false,
+        message: "Cart is empty",
+      });
+    }
+
+    // Collect categoryIds
+    const categoryIds = [
+      ...new Set(
+        cartItems
+          .map((item) => item.pid?.categoryId?.toString())
+          .filter(Boolean)
+      ),
+    ].map((id) => new mongoose.Types.ObjectId(id));
+
+    // Collect subcategoryIds
+    const subcategoryIds = [
+      ...new Set(
+        cartItems
+          .map((item) => item.pid?.subcategoryId?.toString())
+          .filter(Boolean)
+      ),
+    ].map((id) => new mongoose.Types.ObjectId(id));
+
+    // Existing Cart Product Ids
+    const cartProductIds = cartItems.map(
+      (item) => new mongoose.Types.ObjectId(item.pid._id)
+    );
+
+    // Random Related Products
+    const products = await Product.aggregate([
+  {
+    $match: {
+      _id: { $nin: cartProductIds },
+      isActive: true,
+      $or: [
+        {
+          categoryId: { $in: categoryIds },
+          subcategoryId: { $in: subcategoryIds },
+        },
+        {
+          categoryId: { $in: categoryIds },
+        },
+      ],
+    },
+  },
+  {
+    $sample: {
+      size: 10,
+    },
+  },
+]);
+    return res.status(200).json({
+      success: true,
+      cartCategories: categoryIds.length,
+      cartSubcategories: subcategoryIds.length,
+      count: products.length,
+      data: products,
+    });
+  } catch (error) {
+    return res.status(500).json({
       success: false,
       message: error.message,
     });
