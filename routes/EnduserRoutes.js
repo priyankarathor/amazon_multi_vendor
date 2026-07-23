@@ -7,6 +7,7 @@ const {
   getAllendUsers,
   getendUserById,
   updateendUser,
+  deleteendUser
 } = require("../controllers/enduserController");
 
 // Register
@@ -23,5 +24,7 @@ router.get("/enduser/:id", getendUserById);
 
 // Update User By ID
 router.put("/enduser/:id", updateendUser);
+
+router.delete("/delete/:id", deleteendUser);
 
 module.exports = router;
