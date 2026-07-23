@@ -19,7 +19,7 @@ router.post("/", createReview);
 // Get All
 router.get("/", getAllReviews);
 
-// Product Reviews
+// Product Reviews 
 router.get("/product/:pid", getReviewsByProduct);
 
 // Vendor Reviews

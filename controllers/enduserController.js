@@ -125,7 +125,127 @@ const loginendUser = async (req, res) => {
   }
 };
 
+
+// GET ALL USERS
+const getAllendUsers = async (req, res) => {
+  try {
+    const users = await User.find().select("-password");
+
+    res.status(200).json({
+      success: true,
+      count: users.length,
+      users,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// GET USER BY ID
+const getendUserById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const user = await User.findById(id).select("-password");
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      user,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// UPDATE USER BY ID
+const updateendUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const {
+      name,
+      lastname,
+      email,
+      number,
+      status,
+      city,
+      state,
+      pincode,
+      password,
+    } = req.body;
+
+    const user = await User.findById(id);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    // Check if email already exists for another user
+    if (email && email !== user.email) {
+      const existingUser = await User.findOne({ email });
+
+      if (existingUser) {
+        return res.status(400).json({
+          success: false,
+          message: "Email already exists",
+        });
+      }
+    }
+
+    // Update fields
+    user.name = name || user.name;
+    user.lastname = lastname || user.lastname;
+    user.email = email || user.email;
+    user.number = number || user.number;
+    user.status = status || user.status;
+    user.city = city || user.city;
+    user.state = state || user.state;
+    user.pincode = pincode || user.pincode;
+
+    // Update password if provided
+    if (password) {
+      user.password = await bcrypt.hash(password, 10);
+    }
+
+    await user.save();
+
+    const userData = user.toObject();
+    delete userData.password;
+
+    res.status(200).json({
+      success: true,
+      message: "User updated successfully",
+      user: userData,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+
 module.exports = {
   registerendUser,
   loginendUser,
+  getAllendUsers,
+  getendUserById,
+  updateendUser,
 };
