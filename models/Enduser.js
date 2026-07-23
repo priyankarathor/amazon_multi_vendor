@@ -51,6 +51,10 @@ const enduserSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+    address:{
+      type:String,
+      default: "",
+    }
   },
   {
     timestamps: true,

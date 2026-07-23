@@ -15,6 +15,7 @@ const registerendUser = async (req, res) => {
       city,
       state,
       pincode,
+      address
     } = req.body;
 
     const missingFields = ["name", "email", "number", "password"].filter(
@@ -49,6 +50,7 @@ const registerendUser = async (req, res) => {
       city,
       state,
       pincode,
+      address
     });
 
     const userData = user.toObject();
@@ -186,6 +188,7 @@ const updateendUser = async (req, res) => {
       state,
       pincode,
       password,
+      address
     } = req.body;
 
     const user = await User.findById(id);
@@ -218,6 +221,7 @@ const updateendUser = async (req, res) => {
     user.city = city || user.city;
     user.state = state || user.state;
     user.pincode = pincode || user.pincode;
+    user.address = address || user.address;
 
     // Update password if provided
     if (password) {
